@@ -2,7 +2,7 @@ Function Invoke-7Zip {
 [CmdletBinding()] 
 param( 
     [Parameter(ParameterSetName='Add',Mandatory=$False)][switch]$Add, # a
-    [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidateScript({$_ -ge ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)}, ErrorMessage="Specify up to the number of logical processors you have, minus one")][int]$CPUThreads, #-m -mmt(1-16)
+    [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidateScript({$_ -ge ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads, #-m -mmt(1-16)
     [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidateRange(1,9)][Alias('Level')][int]$CompressionLevel, #-m -mx(1-9)
     [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize, #-v
     [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidateSet("7z","xz","zip","gzip","bzip2","tar")][Alias('Type')][string]$ArchiveType, #-tzip,-t7z,etc
@@ -10,7 +10,7 @@ param(
     [Parameter(ParameterSetName='List',Mandatory=$False)][switch]$List, # l
     [Parameter(ParameterSetName='List',Mandatory=$False)][Alias('TechInfo')][switch]$ShowTechnicalInfo,
     [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][Alias('Pass')][string]$Password, #-p
-    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][ValidateScript({Test-Path $_})][Alias('Dir')][switch]$Directory,
+    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][ValidateScript({Test-Path $_})][Alias('Dir')][string]$Directory,
     [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
     [Parameter(Mandatory=$False)][switch]$DontAssumeYes #-y
     
@@ -23,7 +23,7 @@ begin {
 #region Case-correct the File/Directory (7zip is case-sensitive)
 $FileSystemObject = New-Object -ComObject Scripting.FileSystemObject
 
-$ArchiveFile = $FileSystemObject.GetAbsolutePathName($ArchiveFile)
+$ArchiveFile = $FileSystemObject.GetAbsolutePathName((Get-Item $ArchiveFile).FullName)
 
 If ($Null -ne $Directory -and $Directory.Length -gt 0){$Directory = $FileSystemObject.GetAbsolutePathName($Directory)}
 
@@ -34,21 +34,21 @@ Remove-Variable FileSystemObject | Out-null
 #region Validate File/Directory parameters, based on switches
 If ($Add.IsPresent){
 
-    try {!(Test-Path $ArchiveFile -ErrorAction Stop)}
+    try {!($TestPath = Test-Path $ArchiveFile -ErrorAction Stop)}
     catch {throw "$ArchiveFile already exists, stopping"}
 
 } #Close if $Add.IsPresent
 
 If ($Extract.IsPresent -or $List.IsPresent){
 
-    try {Test-Path $ArchiveFile -ErrorAction Stop}
+    try {$TestPath = Test-Path $ArchiveFile -ErrorAction Stop}
     catch {throw "$ArchiveFile doesn't exist, stopping"}
 
     } #Close If $Extract.IsPresent|$List.IsPresent
 
 If ($Add.IsPresent -or $Extract.IsPresent){
 
-    try {Test-Path $Directory -ErrorAction Stop}
+    try {$TestPath = Test-Path $Directory -ErrorAction Stop}
     catch {throw "$Directory doesn't exist, stopping"}
 
 } #Close If $Add.IsPresent|$Extract.IsPresent
@@ -142,7 +142,7 @@ If ($Operation -ne "Add" -and $Operation -ne "List"){
     
     1 {throw $ArchiveErrors}
     
-    {$_ -gt 1}{$ArchiveErrors[($ArchiveErrors.GetUpperBound(0))..1].ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}; throw ($ArchiveErrors[0])}
+    {$_ -gt 1}{$ArchiveErrors[($ArchiveErrors.Count -1)..1].ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}; throw ($ArchiveErrors[0])}
     
     Default {throw "No idea what happened"}
     
@@ -239,7 +239,7 @@ Switch ($Operation){
     
             1 {throw $ListErrors}
     
-            {$_ -gt 1}{$ListErrors[($ListErrors.GetUpperBound(0))..1].ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}; throw ($ListErrors[0])}
+            {$_ -gt 1}{$ListErrors[($ListErrors.Count -1)..1].ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}; throw ($ListErrors[0])}
     
             Default {throw "No idea what happened"}
     
@@ -309,6 +309,9 @@ Switch ($Operation){
         
         $BreakTable.ForEach({
             $Attr = $_
+
+            If ($BreakTable.IndexOf($Attr) -eq ($BreakTable.Count - 1)){$Attr.End = $Line.Length}
+
             $Object | Add-Member -MemberType NoteProperty -Name ($Attr.Name) -Value (($Line[($Attr.Start)..($Attr.End)] -join '').Trim())
 
             }) #Close BreakTable.ForEach
