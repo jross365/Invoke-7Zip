@@ -261,7 +261,7 @@ Switch ($Operation){
         
         } #Close :BreakLoop
         #endregion Find the indexes
-
+        #region Create a table of start/end indexes
         $BreakTable = New-Object System.Collections.ArrayList
 
         $x = 0
@@ -277,6 +277,8 @@ Switch ($Operation){
             
             $x += ($_.Length -1)
             
+            If (($FirstBreak.Length - $x) -eq 1){$x++}
+
             $Object | Add-Member -MemberType NoteProperty -Name "End" -Value $x
             
             $BreakTable.Add($Object) | Out-Null
@@ -288,7 +290,7 @@ Switch ($Operation){
         Else {$x++} #If we find a space character, add 1 to the index
         
         })
-
+        
         (0..($BreakTable.Count -1)).ForEach({
         
             $Index = $_
@@ -298,8 +300,23 @@ Switch ($Operation){
 
             If ($BreakTable[$Index].Name -match $DateTime){$BreakTable[$Index].Name = "DateTime"}
         })
+        #endregion Create a table
+        #region Use the index points to parse out the -l contents        
+        $ListOutput[($FirstBreakIndex + 1)..($LastBreakIndex - 1)].ForEach({
 
+        $Line = $_        
+        $Object = New-Object System.Object
         
+        $BreakTable.ForEach({
+            $Attr = $_
+            $Object | Add-Member -MemberType NoteProperty -Name ($Attr.Name) -Value (($Line[($Attr.Start)..($Attr.End)] -join '').Trim())
+
+            }) #Close BreakTable.ForEach
+
+        $ListTable.Add($Object) | Out-Null
+
+        }) #Close $ListOutput.ForEach()
+        #endregion
         
         } #Close if $_ -eq "List"
 
@@ -330,7 +347,7 @@ Switch ($Operation){
 
         {$_ -eq "ListSLT"}{return $TechTable}
 
-        {$_ -eq "List"}{}
+        {$_ -eq "List"}{return $ListTable}
 
         {$_ -eq "Extract"}{}
 
