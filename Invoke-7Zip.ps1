@@ -67,8 +67,6 @@ switch (Test-Path .\7-Zip\7z.exe){
                 try {$PathTest = Test-Path $7zPath -ErrorAction Stop}
                 catch {throw "Registry entry for 7-Zip exists but path $7zPath is not found"}
 
-                Set-Alias -Name 7z -Value $7zPath
-
             } #Close try
             catch {throw "7z not installed on this computer and is not in a local directory"}
 
@@ -79,6 +77,9 @@ switch (Test-Path .\7-Zip\7z.exe){
     $True {$7zPath = (Get-Location).Path + "\7-Zip\7z.exe"}
 
 } #Close Switch
+
+Set-Alias -Name 7z -Value $7zPath
+
 #endregion Define 7z Alias
 
 #region Build Params
@@ -123,10 +124,37 @@ Else {throw "No valid parameters were found"}
 
 #endregion Build Params
 
+#region Build Scriptblock
+
+#For Reference:
+#7z x test.7z -bsp1 -ppassword -mmt14 -bse0 2>&1 >test.txt
+#Extract test.7z, Redirect Progress to Stream 1, Password "password", 14 threads, Redirect Error to Stream 0, Redirect Stream 2 to 1, Output console output to test.txt
+
+If ($Operation -eq "Add" -or $Operation -eq "Extract"){
+
+$Scriptblock = { #11/13: working on building this to capture console output
+
+    $WorkingDirectory = $args[0]
+    $7zPath = $args[1]
+    $7zParams = $args[2]
+    $Logfile = $args[3]
+
+    try {Set-Location $WorkingDirectory -ErrorAction Stop}
+    catch {throw "Job is unable to move to $WorkingDirectory"}
+
+    Set-Alias -Name 7z -Value $7zPath
+
+    #&7z x .\zipfile.7z  -ppassword -bsp1 -mmt14 | out-string -Stream 2>&1 >test.txt
+
+    } #Close Scriptblock
+
+} #Close if $Operation -eq Add|Extract
+
+#endregion Build Scriptblock
+
 } #Close Begin
 
 process {
-
 
 #since we have to run "-slt" for -List -ShowTechnicalInfo anyway, we'll do it here:
 If ($Operation -ne "Add" -and $Operation -ne "List"){
@@ -326,8 +354,6 @@ Switch ($Operation){
 } #Close switch $Operation
    
 #endregion Do the actual work
-
-
 
 #VALIDATE PASSWORD: 7z t <archive> -p<pass> -bse1 #-bs redirects/halts console output: https://sevenzip.osdn.jp/chm/cmdline/switches/bs.htm
                     # 7z t .\test.7z -p14 -bso0 2>&1 #Disable stdout, redirect stderr to stdout
