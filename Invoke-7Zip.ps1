@@ -132,12 +132,17 @@ Else {throw "No valid parameters were found"}
 
 If ($Operation -eq "Add" -or $Operation -eq "Extract"){
 
+$LogFile = "$((Get-Location).Path)\$(get-random -Minimum 1000000 -Maximum 9999999).log"
+
+try {"Write test" | Out-File $LogFile -ErrorAction Stop}
+catch {throw "Unable to write data out to new logfile $LogFile"}
+
 $Scriptblock = { #11/13: working on building this to capture console output
 
     $WorkingDirectory = $args[0]
     $7zPath = $args[1]
     $7zParameters = $args[2]
-    $Logfile = $args[3]
+    $LogFile = $args[3]
 
     try {Set-Location $WorkingDirectory -ErrorAction Stop}
     catch {throw "Job is unable to move to $WorkingDirectory"}
@@ -383,7 +388,13 @@ Switch ($Operation){
 
         {$_ -eq "List"}{return $ListTable}
 
-        {$_ -eq "Extract"}{}
+        {$_ -eq "Extract"}{
+
+            $Job = Start-Job -ScriptBlock $ScriptBlock -ArgumentList @("$((Get-Location).Path)",$7zPath,$7zParameters,$LogFile)
+        
+            
+
+            } #Close If Eq Extract
 
         {$_ -eq "Add"}{}
 
@@ -393,3 +404,8 @@ Switch ($Operation){
 } #Close End
 
 } #Close Invoke-7Zip
+
+#$WorkingDirectory = $args[0]
+#$7zPath = $args[1]
+#$7zParameters = $args[2]
+#$Logfile = $args[3]
