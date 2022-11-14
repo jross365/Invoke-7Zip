@@ -136,7 +136,7 @@ $Scriptblock = { #11/13: working on building this to capture console output
 
     $WorkingDirectory = $args[0]
     $7zPath = $args[1]
-    $7zParams = $args[2]
+    $7zParameters = $args[2]
     $Logfile = $args[3]
 
     try {Set-Location $WorkingDirectory -ErrorAction Stop}
@@ -144,6 +144,9 @@ $Scriptblock = { #11/13: working on building this to capture console output
 
     Set-Alias -Name 7z -Value $7zPath
 
+    $CommandRun = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
+
+    #$G = invoke-expression "7z $7zParameters -bsp1" -ErrorAction Stop 2>&1
     #&7z x .\zipfile.7z  -ppassword -bsp1 -mmt14 | out-string -Stream 2>&1 >test.txt
 
     } #Close Scriptblock
@@ -289,6 +292,7 @@ Switch ($Operation){
         
         } #Close :BreakLoop
         #endregion Find the indexes
+        
         #region Create a table of start/end indexes
         $BreakTable = New-Object System.Collections.ArrayList
 
@@ -329,6 +333,7 @@ Switch ($Operation){
             If ($BreakTable[$Index].Name -match $DateTime){$BreakTable[$Index].Name = "DateTime"}
         })
         #endregion Create a table
+        
         #region Use the index points to parse out the -l contents        
         $ListOutput[($FirstBreakIndex + 1)..($LastBreakIndex - 1)].ForEach({
 
