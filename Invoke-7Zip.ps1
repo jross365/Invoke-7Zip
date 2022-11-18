@@ -149,7 +149,7 @@ $Scriptblock = { #11/13: working on building this to capture console output
 
     Set-Alias -Name 7z -Value $7zPath
 
-    $CommandRun = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
+    $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
 
     #$G = invoke-expression "7z $7zParameters -bsp1" -ErrorAction Stop 2>&1
     #&7z x .\zipfile.7z  -ppassword -bsp1 -mmt14 | out-string -Stream 2>&1 >test.txt
@@ -392,7 +392,11 @@ Switch ($Operation){
 
             $Job = Start-Job -ScriptBlock $ScriptBlock -ArgumentList @("$((Get-Location).Path)",$7zPath,$7zParameters,$LogFile)
         
-            
+            Do {
+
+
+            }
+            Until ()    
 
             } #Close If Eq Extract
 
