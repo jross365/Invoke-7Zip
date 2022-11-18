@@ -393,7 +393,7 @@ Switch ($Operation){
             $Job = Start-Job -ScriptBlock $ScriptBlock -ArgumentList @("$((Get-Location).Path)",$7zPath,$7zParameters,$LogFile)
         
             Do {
-
+                #[bool]((Get-Content -Tail 10 test2.txt) -match 'Everything is Ok')
 
             }
             Until ()    
