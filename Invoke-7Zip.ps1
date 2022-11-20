@@ -2,7 +2,7 @@ Function Invoke-7Zip {
 [CmdletBinding()] 
 param( 
     [Parameter(ParameterSetName='Add',Mandatory=$False)][switch]$Add, # a
-    [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidateScript({$_ -ge ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads, #-m -mmt(1-16)
+    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][ValidateScript({$_ -ge ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads, #-m -mmt(1-16)
     [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidateRange(1,9)][Alias('Level')][int]$CompressionLevel, #-m -mx(1-9)
     [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize, #-v
     [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidateSet("7z","xz","zip","gzip","bzip2","tar")][Alias('Type')][string]$ArchiveType, #-tzip,-t7z,etc
@@ -151,8 +151,7 @@ $Scriptblock = { #11/13: working on building this to capture console output
 
     $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
 
-    #$G = invoke-expression "7z $7zParameters -bsp1" -ErrorAction Stop 2>&1
-    #&7z x .\zipfile.7z  -ppassword -bsp1 -mmt14 | out-string -Stream 2>&1 >test.txt
+    return $RunCommand
 
     } #Close Scriptblock
 
@@ -164,7 +163,13 @@ $Scriptblock = { #11/13: working on building this to capture console output
 
 process {
 
-#since we have to run "-slt" for -List -ShowTechnicalInfo anyway, we'll do it here:
+#Explanation of the Following:
+# We need the "Technical Info" of the archive for "Extract" to determine whether
+# the archive is encrypted, and to enumerate the smallest file in the archive to
+# test the provided password before attempting to unpack the archive.
+#
+# Therefore, "-List -ShowTechnicalInfo" and "-Extract" both require the "l -slt" parameter.
+#
 If ($Operation -ne "Add" -and $Operation -ne "List"){
 
     $TechContents = 7z l "$ArchiveFile" -slt 2>&1
@@ -254,8 +259,9 @@ If ($Operation -ne "Add" -and $Operation -ne "List"){
     
 #endregion Test Password for encrypted volumes
 
-    } #Close If $Operation -ne "Add"
-#If we made it this far, password validation succeeded
+    } #Close If $Operation -ne "Add"|"List"
+    
+    #IF WE MADE IT THIS FAR, PASSWORD VALIDATION SUCCEEDED!
 
 #region Do the actual work
 
@@ -361,22 +367,75 @@ Switch ($Operation){
         
         } #Close if $_ -eq "List"
 
+        {$_ -eq "Extract"}{
+            $Job = Start-Job -ScriptBlock $ScriptBlock -ArgumentList @("$((Get-Location).Path)",$7zPath,$7zParameters,$LogFile)
+            
+            $Done = $False
+
+            $FileCount = $TechTable.Count
+            $MoreThanOneFile = [bool]($FileCount -gt 1)
+
+            $JobStatus = Get-Job ($Job.Id)
+
+            Switch ($JobStatus.State){ #Check our job state to make sure it's running
+
+            {$_ -eq "Failed"}{throw "Job $($JobStatus.Id) failed for 7zip extract operation"}
+            {$_ -eq "Blocked"}{throw "Job $($JobStatus.Id) was blocked from running 7zip extract operation"}
+            {$_ -eq "Stopped"}{throw "Job $($JobStatus.Id) was stopped while running 7zip extract operation"}
+            {$_ -eq "Suspended"}{throw "Job $($JobStatus.Id) was suspended from running 7zip extract operation"}
+
+            } #Close JobStatus.State
+
+            Do {
+
+                Start-Sleep -Milliseconds 250 #Sleep 1/4 of a second
+
+                $LogLatest = (Get-Content $LogFile -Tail 6).Where({$_ -match '(\d+)%|(\bEverything is Ok\b)'}) | Select-Object -Last 1
+
+                If ($null -eq $LogLatest -or $LogLatest.Length -eq 0){Start-Sleep -Milliseconds 100}
+
+                ElseIf ([bool]($LogLatest -eq "Everything is Ok")){$Done = $True}
+
+                ElseIf (!$MoreThanOneFile){
+                    
+                                            $Percent,$File = ($LogLatest -split ' - ').Trim()
+                                            $Percent = $Percent.TrimEnd('%').Trim()
+                                            $OnFile = 1
+                                        
+                                        } #Close ElseIf !$MoreThanOneFile
+
+                ElseIf ($MoreThanOneFile){
+                    
+                                            $Percent,$File = ($LogLatest -split ' - ').Trim()
+                                            $Percent,$OnFile = ($Percent -split '%').Trim()
+                                        
+                                        } #Close ElseIf $MoreThanOneFile
+
+                Write-Progress -Activity "Extracting $ArchiveFile" -Status "$OnFile of $FileCount | Extracting $File" -PercentComplete $Percent
+
+            } #Close Do
+            Until ($Done -eq $True)
+
+            Write-Progress -Activity "Extracting $ArchiveFile" -Status "Ready" -Completed
+
+            $JobStatus = Get-Job ($Job.Id)
+
+            Switch (($JobStatus).State){
+
+            {$_ -eq "Completed"}{$JobContents = ($Job | Receive-Job); $Job | Remove-Job}
+
+            {$_ -eq "Failed"}{throw "Job errored; $($JobStatus.Error)"}
+
+            #11/19 - NEED TO CHECK JOB OUTPUT HERE
+
+            } #Close Switch Get-Job (ID) State
+        } #Close if $_ -eq "Extract"
+
+        {$_ -eq "Add"}{}
+
 } #Close switch $Operation
    
 #endregion Do the actual work
-
-#VALIDATE PASSWORD: 7z t <archive> -p<pass> -bse1 #-bs redirects/halts console output: https://sevenzip.osdn.jp/chm/cmdline/switches/bs.htm
-                    # 7z t .\test.7z -p14 -bso0 2>&1 #Disable stdout, redirect stderr to stdout
-
-                    #A functional way to capture an error (doesn't work with try/catch):
-                        #$X = 7z t .\test.7z -p14  2>&1
-
-                        #If ($LASTEXITCODE -ne 0){
-                        #    $TestError = $X.Where({$_.GetType().Name -eq "ErrorRecord"})
-                        #}
-
-
-
 
 } #Close Process
 
@@ -390,13 +449,7 @@ Switch ($Operation){
 
         {$_ -eq "Extract"}{
 
-            $Job = Start-Job -ScriptBlock $ScriptBlock -ArgumentList @("$((Get-Location).Path)",$7zPath,$7zParameters,$LogFile)
-        
-            Do {
-                #[bool]((Get-Content -Tail 10 test2.txt) -match 'Everything is Ok')
 
-            }
-            Until ()    
 
             } #Close If Eq Extract
 
