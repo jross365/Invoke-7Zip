@@ -174,8 +174,8 @@ process {
 
  Therefore, "-List -ShowTechnicalInfo" and "-Extract" both require the "l -slt" parameter.
 #>
-If ($Operation -ne "Add" -and $Operation -ne "List"){
-
+#If ($Operation -ne "Add" -and $Operation -ne "List"){
+If ($Operation -eq "Extract" -or $Operation -eq "ListSLT"){
     $TechContents = 7z l "$ArchiveFile" -slt 2>&1
     
 #region TechContents Error-catching:
@@ -195,8 +195,9 @@ If ($Operation -ne "Add" -and $Operation -ne "List"){
 #endregion TechContents Error-catching
     
 #region Test Password for encrypted volumes
-    If ($null -ne $EncryptedTags -and $null -eq $Password -and !($List.IsPresent)){throw "Archive is encrypted, but no password was specified"}
-    
+    #If ($null -ne $EncryptedTags -and $null -eq $Password -and !($List.IsPresent)){throw "Archive is encrypted, but no password was specified"}
+    If ($EncryptedTags.Count -gt 0 -and ($null -eq $Password -or $Password.Length -eq 0)){throw "Archive is encrypted, but no password was specified"}
+
     If ($Operation -eq "Extract" -or $Operation -eq "ListSLT"){
     
         #Build a Powershell Array with parsed -slt data
@@ -244,16 +245,18 @@ If ($Operation -ne "Add" -and $Operation -ne "List"){
         
         $PasswordTest = 7z t $ArchiveFile -p"$Password" -i!\($SmallestFile.Path) -bso0 -bd 2>&1
         
-        If ($PasswordTest.Count -gt 0){$TestErrors = $PasswordTest[$PasswordTest.GetUpperBound(0)..0].Where({$_.Exception.Message.Length -gt 0}).Exception.Message}
-    
+        #If ($PasswordTest.Count -gt 0){$TestErrors = $PasswordTest[$PasswordTest.GetUpperBound(0)..0].Where({$_.Exception.Message.Length -gt 0}).Exception.Message}
+        If ($PasswordTest.Count -gt 0){$TestErrors = $PasswordTest.Where({$_.Exception.Message.Length -gt 0}).Exception.Message}
+
         Switch ($TestErrors.Count){
     
             0 {} #Do nothing
     
             1 {throw $TestErrors}
     
-            {$_ -gt 1}{$TestErrors[($TestErrors.GetUpperBound(0))..1].ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}; throw ($TestErrors[0])}
-    
+            #{$_ -gt 1}{$TestErrors[($TestErrors.GetUpperBound(0))..1].ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}; throw ($TestErrors[0])}
+            {$_ -gt 1}{$TestErrors.ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}; throw ($TestErrors[0])}
+
             Default {throw "No idea what happened"}
     
             } #Close Switch TestErrors.Count
@@ -396,7 +399,7 @@ Switch ($Operation){
 
                 $LogLatest = (Get-Content $LogFile -Tail 6).Where({$_ -match '(\d+)%|(\bEverything is Ok\b)'}) | Select-Object -Last 1
 
-                If ($null -eq $LogLatest -or $LogLatest.Length -eq 0){Start-Sleep -Milliseconds 100}
+                If ($null -eq $LogLatest -or $LogLatest.Length -eq 0){Start-Sleep -Milliseconds 100; $OnFile = 0; $File = "-"; $Percent = 0}
 
                 ElseIf ([bool]($LogLatest -eq "Everything is Ok")){$Done = $True; $OnFile = $FileCount; $File = "None (Complete)"; $Percent = 100}
 
