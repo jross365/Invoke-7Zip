@@ -2,7 +2,7 @@ Function Invoke-7Zip {
 [CmdletBinding()] 
 param( 
     [Parameter(ParameterSetName='Add',Mandatory=$False)][switch]$Add, # a
-    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][ValidateScript({$_ -ge ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads, #-m -mmt(1-16)
+    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][ValidateScript({$_ -le ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads, #-m -mmt(1-16)
     [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidateRange(1,9)][Alias('Level')][int]$CompressionLevel, #-m -mx(1-9)
     [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize, #-v
     [Parameter(ParameterSetName='Add',Mandatory=$False)][ValidateSet("7z","xz","zip","gzip","bzip2","tar")][Alias('Type')][string]$ArchiveType, #-tzip,-t7z,etc
@@ -10,13 +10,10 @@ param(
     [Parameter(ParameterSetName='List',Mandatory=$False)][switch]$List, # l
     [Parameter(ParameterSetName='List',Mandatory=$False)][Alias('TechInfo')][switch]$ShowTechnicalInfo,
     [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][Alias('Pass')][string]$Password, #-p
-    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][ValidateScript({Test-Path $_})][Alias('Dir')][string]$Directory,
-    [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
-    [Parameter(Mandatory=$False)][switch]$DontAssumeYes #-y
+    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][ValidateScript({Test-Path $_})][string]$Target,
+    [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
     
-    #[Parameter(Mandatory=$False)][Alias('Recurse')][switch]$RecurseSubdirectories, #-r This only applies with wildcard filters, which I'm not going to include for this wrapper
-    
-)
+    )
 
 begin {
 
@@ -25,7 +22,8 @@ $FileSystemObject = New-Object -ComObject Scripting.FileSystemObject
 
 $ArchiveFile = $FileSystemObject.GetAbsolutePathName((Get-Item $ArchiveFile).FullName)
 
-If ($Null -ne $Directory -and $Directory.Length -gt 0){$Directory = $FileSystemObject.GetAbsolutePathName($Directory)}
+If ($null -eq $Target -or $Target.Length -eq 0){$Target = $FileSystemObject.GetAbsolutePathName((Get-Location).Path)}
+Else {$Target = $FileSystemObject.GetAbsolutePathName($Target)}
 
 Remove-Variable FileSystemObject | Out-null
 
@@ -48,8 +46,8 @@ If ($Extract.IsPresent -or $List.IsPresent){
 
 If ($Add.IsPresent -or $Extract.IsPresent){
 
-    try {$TestPath = Test-Path $Directory -ErrorAction Stop}
-    catch {throw "$Directory doesn't exist, stopping"}
+    try {$TestPath = Test-Path $Target -ErrorAction Stop}
+    catch {throw "$Target doesn't exist, stopping"}
 
 } #Close If $Add.IsPresent|$Extract.IsPresent
 
@@ -89,12 +87,18 @@ $Operation = "None"
 
 If ($Add.IsPresent){
 
-    $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Directory" + '"'
+    $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Target " + '"'
 
-    $7zParameters += " -m -mx$CompressionLevel -t$ArchiveType"
-    If ($null -ne $VolumeSize){$7zParameters += " -v$VolumeSize"}
-    If ($null -ne $Password){$7zParameters += " -p$Password"}
-    If (!($DontAssumeYes.IsPresent)){$7zParameters += " -y"}
+    $7zParameters += "-m -mx$CompressionLevel "
+    
+    If ($null -ne $CPUThreads){$7zParameters += "-mmt$CPUThreads "}
+
+    $7zParameters += "-t$ArchiveType "
+    
+    If ($null -ne $VolumeSize){$7zParameters += "-v$VolumeSize "}
+    If ($null -ne $Password){$7zParameters += "-p$Password "}
+    
+    $7zParameters += "-y"
 
     $Operation = "Add"
 
@@ -104,9 +108,10 @@ If ($Add.IsPresent){
 
 Elseif ($Extract.IsPresent) {
 
-    $7zParameters += " x " + '"' + "$ArchiveFile" + '"' + " -o" + '"' + "$Directory" + '"'
-    If ($null -ne $Password){$7zParameters += " -p$($Password)"}
-    If (!($DontAssumeYes.IsPresent)){$7zParameters += " -y"}
+    $7zParameters += " x " + '"' + "$ArchiveFile" + '"' + " -o" + '"' + "$Target " + '"'
+    If ($null -ne $CPUThreads){$7zParameters += "-m -mmt$CPUThreads "}
+    If ($null -ne $Password){$7zParameters += "-p$Password "}
+    $7zParameters += "-y"
     
     $Operation = "Extract"
 
@@ -122,10 +127,6 @@ Else {$Operation = "List"}
 
 Else {throw "No valid parameters were found"}
 
-#endregion Build Params
-
-#region Build Scriptblock
-
 #For Reference:
 #7z x test.7z -bsp1 -ppassword -mmt14 -bse0 2>&1 >test.txt
 #Extract test.7z, Redirect Progress to Stream 1, Password "password", 14 threads, Redirect Error to Stream 0, Redirect Stream 2 to 1, Output console output to test.txt
@@ -136,6 +137,9 @@ $LogFile = "$((Get-Location).Path)\$(get-random -Minimum 1000000 -Maximum 999999
 
 try {"Write test" | Out-File $LogFile -ErrorAction Stop}
 catch {throw "Unable to write data out to new logfile $LogFile"}
+#endregion Build Params
+
+#region Build Scriptblock
 
 $Scriptblock = { #11/13: working on building this to capture console output
 
@@ -163,13 +167,13 @@ $Scriptblock = { #11/13: working on building this to capture console output
 
 process {
 
-#Explanation of the Following:
-# We need the "Technical Info" of the archive for "Extract" to determine whether
-# the archive is encrypted, and to enumerate the smallest file in the archive to
-# test the provided password before attempting to unpack the archive.
-#
-# Therefore, "-List -ShowTechnicalInfo" and "-Extract" both require the "l -slt" parameter.
-#
+<#Explanation of the Following:
+ We need the "Technical Info" of the archive for "Extract" to determine whether
+ the archive is encrypted, and to enumerate the smallest file in the archive to
+ test the provided password before attempting to unpack the archive.
+
+ Therefore, "-List -ShowTechnicalInfo" and "-Extract" both require the "l -slt" parameter.
+#>
 If ($Operation -ne "Add" -and $Operation -ne "List"){
 
     $TechContents = 7z l "$ArchiveFile" -slt 2>&1
@@ -257,11 +261,9 @@ If ($Operation -ne "Add" -and $Operation -ne "List"){
    
     } #Close If $null -ne $encryptedtags -and $null -ne $password, -or $Operation -eq "ListSLT"
     
-#endregion Test Password for encrypted volumes
-
     } #Close If $Operation -ne "Add"|"List"
-    
-    #IF WE MADE IT THIS FAR, PASSWORD VALIDATION SUCCEEDED!
+
+    #endregion Test Password for encrypted volumes
 
 #region Do the actual work
 
