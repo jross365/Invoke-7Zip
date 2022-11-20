@@ -11,8 +11,8 @@ param(
     [Parameter(ParameterSetName='List',Mandatory=$False)][Alias('TechInfo')][switch]$ShowTechnicalInfo,
     [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][Alias('Pass')][string]$Password, #-p
     [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][ValidateScript({Test-Path $_})][string]$Target,
-    [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
-    
+    [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
+    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][Alias('KeepLog')][switch]$KeepLogfile 
     )
 
 begin {
@@ -196,7 +196,7 @@ If ($Operation -eq "Extract" -or $Operation -eq "ListSLT"){
     
 #region Test Password for encrypted volumes
     #If ($null -ne $EncryptedTags -and $null -eq $Password -and !($List.IsPresent)){throw "Archive is encrypted, but no password was specified"}
-    If ($EncryptedTags.Count -gt 0 -and ($null -eq $Password -or $Password.Length -eq 0)){throw "Archive is encrypted, but no password was specified"}
+    If ($Operation -eq "Extract" -and $EncryptedTags.Count -gt 0 -and ($null -eq $Password -or $Password.Length -eq 0)){throw "Archive is encrypted, but no password was specified"}
 
     If ($Operation -eq "Extract" -or $Operation -eq "ListSLT"){
     
@@ -243,7 +243,8 @@ If ($Operation -eq "Extract" -or $Operation -eq "ListSLT"){
 
         $SmallestFile = $TechTable.Where({$_.Encrypted -eq '+'}) | Sort-Object Size | Select-Object -First 1
         
-        $PasswordTest = 7z t $ArchiveFile -p"$Password" -i!\($SmallestFile.Path) -bso0 -bd 2>&1
+        #There seems to be a bug in 7z where -i!\<Path> tests more than the specified file. No idea why, but it's a non-issue even if it hurts performance.
+        $PasswordTest = 7z t $ArchiveFile -p"$Password" -i!\$($SmallestFile.Path) -bso0 -bd 2>&1
         
         #If ($PasswordTest.Count -gt 0){$TestErrors = $PasswordTest[$PasswordTest.GetUpperBound(0)..0].Where({$_.Exception.Message.Length -gt 0}).Exception.Message}
         If ($PasswordTest.Count -gt 0){$TestErrors = $PasswordTest.Where({$_.Exception.Message.Length -gt 0}).Exception.Message}
@@ -458,11 +459,14 @@ Switch ($Operation){
 
         {$_ -eq "Extract"}{
 
-
+            If ($KeepLogfile.IsPresent){Write-Verbose "Logfile is $LogFile" -Verbose}
 
             } #Close If Eq Extract
 
-        {$_ -eq "Add"}{}
+        {$_ -eq "Add"}{
+
+            If ($KeepLogfile.IsPresent){Write-Verbose "Logfile is $LogFile" -Verbose}
+        }
 
 } #Close Switch Operation
 
