@@ -87,7 +87,7 @@ $Operation = "None"
 
 If ($Add.IsPresent){
 
-    $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Target " + '"'
+    $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Target" + '" '
 
     $7zParameters += "-m -mx$CompressionLevel "
     
@@ -108,8 +108,8 @@ If ($Add.IsPresent){
 
 Elseif ($Extract.IsPresent) {
 
-    $7zParameters += " x " + '"' + "$ArchiveFile" + '"' + " -o" + '"' + "$Target " + '"'
-    If ($null -ne $CPUThreads){$7zParameters += "-m -mmt$CPUThreads "}
+    $7zParameters += " x " + '"' + "$ArchiveFile" + '"' + " -o" + '"' + "$Target" + '" '
+    If ($null -ne $CPUThreads){$7zParameters += "-mmt$CPUThreads "}
     If ($null -ne $Password){$7zParameters += "-p$Password "}
     $7zParameters += "-y"
     
@@ -197,7 +197,7 @@ If ($Operation -ne "Add" -and $Operation -ne "List"){
 #region Test Password for encrypted volumes
     If ($null -ne $EncryptedTags -and $null -eq $Password -and !($List.IsPresent)){throw "Archive is encrypted, but no password was specified"}
     
-    If (($null -ne $EncryptedTags -and $null -ne $Password) -or $Operation -eq "ListSLT"){
+    If ($Operation -eq "Extract" -or $Operation -eq "ListSLT"){
     
         #Build a Powershell Array with parsed -slt data
         $TechTable = New-Object System.Collections.ArrayList
@@ -237,7 +237,8 @@ If ($Operation -ne "Add" -and $Operation -ne "List"){
         }
         Until ($x -ge $FileInfoLines)
 
-        If ($Operation -ne "ListSLT"){ #If we're not doing l -slt, we need to find the smallest file to test password against
+        #region Test the Password
+        If ($Operation -eq "Extract" -and $null -ne $Password -and $null -ne $EncryptedTags){ #If we're not doing l -slt, we need to find the smallest file to test password against
 
         $SmallestFile = $TechTable.Where({$_.Encrypted -eq '+'}) | Sort-Object Size | Select-Object -First 1
         
@@ -255,10 +256,11 @@ If ($Operation -ne "Add" -and $Operation -ne "List"){
     
             Default {throw "No idea what happened"}
     
-        } #Close Switch TestErrors.Count
+            } #Close Switch TestErrors.Count
     
-     } #Close if $Operation -ne ListSLT
-   
+        } #Close if $Operation -ne ListSLT
+        #endregion Test the Password
+
     } #Close If $null -ne $encryptedtags -and $null -ne $password, -or $Operation -eq "ListSLT"
     
     } #Close If $Operation -ne "Add"|"List"
@@ -396,7 +398,9 @@ Switch ($Operation){
 
                 If ($null -eq $LogLatest -or $LogLatest.Length -eq 0){Start-Sleep -Milliseconds 100}
 
-                ElseIf ([bool]($LogLatest -eq "Everything is Ok")){$Done = $True}
+                ElseIf ([bool]($LogLatest -eq "Everything is Ok")){$Done = $True; $OnFile = $FileCount; $File = "None (Complete)"; $Percent = 100}
+
+                ElseIf ($LogLatest -eq '  0%'){$OnFile = 0; $File = "-"; $Percent = 0}
 
                 ElseIf (!$MoreThanOneFile){
                     
