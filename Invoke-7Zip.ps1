@@ -12,7 +12,8 @@ param(
     [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][Alias('Pass')][string]$Password, #-p
     [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][ValidateScript({Test-Path $_})][string]$Target,
     [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
-    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][Alias('KeepLog')][switch]$KeepLogfile 
+    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][Alias('KeepLog')][switch]$KeepLogfile,
+    [Parameter(ParameterSetName='Add',Mandatory=$False)][Parameter(ParameterSetName='Extract',Mandatory=$False)][Alias('Quiet')][switch]$Silent
     )
 
 begin {
@@ -49,7 +50,9 @@ If ($Add.IsPresent -or $Extract.IsPresent){
     try {$TestPath = Test-Path $Target -ErrorAction Stop}
     catch {throw "$Target doesn't exist, stopping"}
 
-} 
+}
+
+$Loud = !($Silent.IsPresent)
 
 #endregion Validate Exists
 
@@ -102,8 +105,6 @@ If ($Add.IsPresent){
 
     $Operation = "Add"
 
-    #LEFT OFF HERE: Do I need to specify -r (recurse)? #PICKED UP: Nope
-
 } #Close $Add.IsPresent
 
 Elseif ($Extract.IsPresent) {
@@ -127,9 +128,11 @@ Else {$Operation = "List"}
 
 Else {throw "No valid parameters were found"}
 
-#For Reference:
-#7z x test.7z -bsp1 -ppassword -mmt14 -bse0 2>&1 >test.txt
-#Extract test.7z, Redirect Progress to Stream 1, Password "password", 14 threads, Redirect Error to Stream 0, Redirect Stream 2 to 1, Output console output to test.txt
+<#
+For Reference:
+7z x test.7z -bsp1 -ppassword -mmt14 -bse0 2>&1 >test.txt
+Extract test.7z, Redirect Progress to Stream 1, Password "password", 14 threads, Redirect Error to Stream 0, Redirect Stream 2 to 1, Output console output to test.txt
+#>
 
 #endregion Build Params
 
@@ -443,9 +446,11 @@ Switch ($Operation){
             {$_ -eq "Suspended"}{&$LogfileCleanup; throw "Job $($JobStatus.Id) was suspended from running 7zip extract operation"}
 
             } #Close JobStatus.State
-
-            &$InitializeInputBuffer
-            Write-Verbose "Press ESCAPE key to interrupt extract operation" -Verbose
+            
+            If ($Loud){
+                &$InitializeInputBuffer
+                Write-Verbose "Press ESCAPE key to interrupt extract operation" -Verbose
+            }
 
             Do {
 
@@ -453,37 +458,46 @@ Switch ($Operation){
 
                 $LogLatest = (Get-Content $LogFile -Tail 6).Where({$_ -match '(\d+)%|(\bEverything is Ok\b)'}) | Select-Object -Last 1
 
-                If ($null -eq $LogLatest -or $LogLatest.Length -eq 0){Start-Sleep -Milliseconds 100; $OnFile = 0; $File = "-"; $Percent = 0}
+                If (!$Loud -and [bool]($LogLatest -eq "Everything is Ok")){$Done = $True}
 
-                ElseIf ([bool]($LogLatest -eq "Everything is Ok")){$Done = $True; $OnFile = $FileCount; $File = "None (Complete)"; $Percent = 100}
+                If ($Loud){
 
-                ElseIf ($LogLatest -eq '  0%'){$OnFile = 0; $File = "-"; $Percent = 0}
+                    If ($null -eq $LogLatest -or $LogLatest.Length -eq 0){Start-Sleep -Milliseconds 100; $OnFile = 0; $File = "-"; $Percent = 0}
 
-                ElseIf (!$MoreThanOneFile){
-                    
-                                            $Percent,$File = ($LogLatest -split ' - ').Trim()
-                                            $Percent = $Percent.TrimEnd('%').Trim()
-                                            $OnFile = 1
-                                        
-                                        } #Close ElseIf !$MoreThanOneFile
+                    ElseIf ([bool]($LogLatest -eq "Everything is Ok")){$Done = $True; $OnFile = $FileCount; $File = "None (Complete)"; $Percent = 100}
 
-                ElseIf ($MoreThanOneFile){
-                    
-                                            $Percent,$File = ($LogLatest -split ' - ').Trim()
-                                            $Percent,$OnFile = ($Percent -split '%').Trim()
-                                        
-                                        } #Close ElseIf $MoreThanOneFile
+                    ElseIf ($LogLatest -eq '  0%'){$OnFile = 0; $File = "-"; $Percent = 0}
 
-                Write-Progress -Activity "Extracting $ArchiveFile" -Status "$OnFile of $FileCount | Extracting $File" -PercentComplete $Percent
+                    ElseIf (!$MoreThanOneFile){
+                        
+                                                $Percent,$File = ($LogLatest -split ' - ').Trim()
+                                                $Percent = $Percent.TrimEnd('%').Trim()
+                                                $OnFile = 1
+                                            
+                                            } #Close ElseIf !$MoreThanOneFile
 
-                &$InterceptEscapeKey
+                    ElseIf ($MoreThanOneFile){
+                        
+                                                $Percent,$File = ($LogLatest -split ' - ').Trim()
+                                                $Percent,$OnFile = ($Percent -split '%').Trim()
+                                            
+                                            } #Close ElseIf $MoreThanOneFile
+                
+
+                    Write-Progress -Activity "Extracting $ArchiveFile" -Status "$OnFile of $FileCount | Extracting $File" -PercentComplete $Percent
+                    &$InterceptEscapeKey
+                }
 
             } #Close Do
             Until ($Done -eq $True -or $Global:Interrupted -eq $True)
 
-            Write-Progress -Activity "Extracting $ArchiveFile" -Status "Ready" -Completed
+            If ($Loud){
 
-            If ($Global:Interrupted -eq $True){$Operation = "$Operation Interrupted"}
+                Write-Progress -Activity "Extracting $ArchiveFile" -Status "Ready" -Completed
+
+                If ($Global:Interrupted -eq $True){$Operation = "$Operation Interrupted"}
+
+            }
 
             $JobStatus = Get-Job ($Job.Id)
 
@@ -508,9 +522,18 @@ Switch ($Operation){
 
 end {
 
+[Console]::TreatControlCAsInput = $False
+
 Switch ($Operation){
 
-        {$_ -match 'Interrupted'}{Get-Job | Stop-Job; Get-Job | Remove-Job; &$LogfileCleanup; Write-Verbose "Operation $Operation before completing" -Verbose}
+        {$_ -match 'Interrupted'}{
+            
+            Get-Job | Stop-Job
+            Get-Job | Remove-Job
+            &$LogfileCleanup
+            Write-Verbose "Operation $Operation before completing" -Verbose
+        
+        }
 
         {$_ -eq "ListSLT"}{return $TechTable}
 
@@ -518,7 +541,7 @@ Switch ($Operation){
 
         {$_ -eq "Extract"}{
 
-            If ($KeepLogfile.IsPresent){Write-Verbose "Logfile is $LogFile" -Verbose}
+            If ($KeepLogfile.IsPresent -and $Loud){Write-Verbose "Logfile is $LogFile" -Verbose}
 
             &$LogfileCleanup
 
@@ -526,7 +549,7 @@ Switch ($Operation){
 
         {$_ -eq "Add"}{
 
-            If ($KeepLogfile.IsPresent){Write-Verbose "Logfile is $LogFile" -Verbose}
+            If ($KeepLogfile.IsPresent -and $Loud){Write-Verbose "Logfile is $LogFile" -Verbose}
 
             &$LogfileCleanup
         }
