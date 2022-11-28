@@ -479,3 +479,9 @@ Switch ($Operation){
 #$7zPath = $args[1]
 #$7zParameters = $args[2]
 #$Logfile = $args[3]
+
+#11/23 THINGS TO DO:
+    # Test/fix multi-file archive "list" functionality
+    # Extract: parse "Volumes" count in preliminary "ExtractSLT" output
+        # Capture "original" volume name
+    # Extract: handle "-Target .\" input
