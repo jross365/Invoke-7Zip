@@ -75,7 +75,7 @@ switch (Test-Path .\7-Zip\7z.exe){
 
         } #Close False
 
-    $True {$7zPath = (Get-Location).Path + "\7-Zip\7z.exe"}
+    $True {$7zPath = (Get-Location).Path + "7-Zip\7z.exe"}
 
 } #Close Switch
 
@@ -169,7 +169,7 @@ $Scriptblock = {
 
     }
 
-} #Close if $Operation -eq Add|Extract
+}
 
 #endregion Build Scriptblock
 
@@ -187,22 +187,22 @@ $InterceptEscapeKey = {
     
     If ($Host.UI.RawUI.KeyAvailable -and ($Key = $Host.UI.RawUI.ReadKey("AllowCtrlC,NoEcho,IncludeKeyUp"))) {
 
-    If ([Int]$Key.Character -eq 27) {
+        If ([Int]$Key.Character -eq 27) {
         
-        Write-Warning "Escape Key detected, terminating operation (please wait)"
-        $Global:Interrupted = $True
-        [Console]::TreatControlCAsInput = $False
+            Write-Warning "Escape Key detected, terminating operation (please wait)"
+            $Global:Interrupted = $True
+            [Console]::TreatControlCAsInput = $False
 
     }
 
     $Host.UI.RawUI.FlushInputBuffer()
 }
 
-} #Close $InterceptEscapeKey
+}
 
 #endregion Build ESCAPE key Interception
 
-} #Close Begin
+}
 
 process {
 
@@ -389,7 +389,7 @@ Switch ($Operation){
 
             $x++;
         
-        } #Close if $_ -match '-'
+        }
 
         Else {$x++} #If we find a space character, add 1 to the index
         
@@ -404,7 +404,7 @@ Switch ($Operation){
 
             If ($BreakTable[$Index].Name -match $DateTime){$BreakTable[$Index].Name = "DateTime"}
         })
-        #endregion Create A Table
+        #endregion Create a Table of start/end indexes
         
         #region Use the index points to parse out the -l contents        
         $ListOutput[($FirstBreakIndex + 1)..($LastBreakIndex - 1)].ForEach({
@@ -424,8 +424,15 @@ Switch ($Operation){
         $ListTable.Add($Object) | Out-Null
 
         }) #Close $ListOutput.ForEach()
-        #endregion Create A Table
+        #endregion Use the index points to parse out the -l contents
         
+        #region Filter out faulty entries (from multi-volume archives)
+        [regex]$FaultyEntries = "-{2,}|[0-9]+ files|^$"
+
+        $ListTable = $ListTable.Where({$_.Name -notmatch $FaultyEntries})
+
+        #endregion Filter out faulty entries
+
         } #Close if $_ -eq "List"
 
         {$_ -eq "Extract"}{
@@ -452,6 +459,10 @@ Switch ($Operation){
                 Write-Verbose "Press ESCAPE key to interrupt extract operation" -Verbose
             }
 
+            #Predefine variables for parsing out original file name, number of files later:
+            $ExtractionBegun = $False
+            $LogfileRead = $False
+
             Do {
 
                 Start-Sleep -Milliseconds 250 #Sleep 1/4 of a second
@@ -466,23 +477,55 @@ Switch ($Operation){
 
                     ElseIf ([bool]($LogLatest -eq "Everything is Ok")){$Done = $True; $OnFile = $FileCount; $File = "None (Complete)"; $Percent = 100}
 
-                    ElseIf ($LogLatest -eq '  0%'){$OnFile = 0; $File = "-"; $Percent = 0}
+                    ElseIf ($LogLatest -eq '  0%'){
+                                                $OnFile = 0
+                                                $File = "-"
+                                                $Percent = 0
+                                                $ExtractionBegun = !$ExtractionBegun
+
+                                            }
 
                     ElseIf (!$MoreThanOneFile){
                         
                                                 $Percent,$File = ($LogLatest -split ' - ').Trim()
                                                 $Percent = $Percent.TrimEnd('%').Trim()
                                                 $OnFile = 1
-                                            
-                                            } #Close ElseIf !$MoreThanOneFile
+                                                $ExtractionBegun = !$ExtractionBegun
+
+                                            }
 
                     ElseIf ($MoreThanOneFile){
                         
                                                 $Percent,$File = ($LogLatest -split ' - ').Trim()
                                                 $Percent,$OnFile = ($Percent -split '%').Trim()
-                                            
-                                            } #Close ElseIf $MoreThanOneFile
-                
+                                                $ExtractionBegun = !$ExtractionBegun
+
+                                            }
+
+                    #Capture the original file name, number of files from logfile for split archive:
+                    If ($ExtractionBegun -and !$LogfileRead){ 
+                        
+                        $LogLatest = Get-Content $LogFile
+                        $VolLine = $LogLatest.IndexOf($LogLatest.Where({$_ -match "Volumes ="}))
+                        
+                        If ("" -ne $VolLine){
+                            
+                            $ArchiveFilesCount = ($LogLatest[$VolLine] -split '=')[1].Trim()
+
+                            Do {
+                                $VolLine++
+                                $LineContents = $LogLatest[$VolLine]
+                            }
+                            Until ($LineContents -match 'Path =')
+
+                            $OriginalFilename = ($LineContents -split '=')[1].Trim()
+
+                            $ArchiveFile = "$OriginalFileName ($ArchiveFilesCount files)"
+                        }
+
+                        $LogfileRead = $True
+
+                    }
 
                     Write-Progress -Activity "Extracting $ArchiveFile" -Status "$OnFile of $FileCount | Extracting $File" -PercentComplete $Percent
                     &$InterceptEscapeKey
@@ -567,7 +610,8 @@ Switch ($Operation){
 #$Logfile = $args[3]
 
 #11/23 THINGS TO DO:
-    # Test/fix multi-file archive "list" functionality
-    # Extract: parse "Volumes" count in preliminary "ExtractSLT" output
-        # Capture "original" volume name
+    #! Test/fix multi-file archive "list" functionality
+    #! Extract: parse "Volumes" count in preliminary "ExtractSLT" output
+        #! Capture "original" volume name
     # Extract: handle "-Target .\" input
+    # Check/fix duplicate backslashes in root paths (D:\\Folder\...etc)
