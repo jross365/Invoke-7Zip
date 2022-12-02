@@ -244,6 +244,12 @@ Function Get-ArchiveContents {
 
 } #Close Function Get-ArchiveContents
 
+Function Extract-Archive {
+
+
+
+
+} #Close Function Extract-Archive
 
 Function Invoke-7Zip {
     [CmdletBinding()] 
