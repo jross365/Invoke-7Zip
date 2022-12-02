@@ -340,11 +340,21 @@ Switch ($Operation){
     
             0 {} #Do nothing
     
-            1 {&$LogfileCleanup; throw $ListErrors}
+            1 {
+                    &$LogfileCleanup
+                    throw $ListErrors
+                }
     
-            {$_ -gt 1}{&$LogfileCleanup; $ListErrors[($ListErrors.Count -1)..1].ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}; throw ($ListErrors[0])}
+            {$_ -gt 1}{
+                    &$LogfileCleanup
+                    $ListErrors[($ListErrors.Count -1)..1].ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}
+                    throw ($ListErrors[0])
+                }
     
-            Default {&$LogfileCleanup; throw "No idea what happened"}
+            Default {
+                    &$LogfileCleanup
+                    throw "No idea what happened"
+                }
     
         } #Close Switch TestErrors.Count
 
