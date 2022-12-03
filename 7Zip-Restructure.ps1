@@ -33,8 +33,23 @@ Function Initialize-7zip ($szPath){
     }
     
     Set-Alias -Scope Global -Name 7z -Value $7zPath
+    
+    $Global:szPath = $7zPath
 
 }
+
+Function Get-AbsolutePath ($Path){
+    
+    $FileSystemObject = New-Object -ComObject Scripting.FileSystemObject
+    
+    Try {$AbsolutePath = $FileSystemObject.GetAbsolutePathName((Get-Item $Path -ErrorAction Stop).FullName)}
+    Catch {throw "$Path name or path is not valid"}
+    
+    Remove-Variable FileSystemObject | Out-null
+
+    return $AbsolutePath
+
+} #Close Function Get-AbsolutePath
 
 Function Get-ArchiveContents {
 
@@ -48,17 +63,10 @@ Function Get-ArchiveContents {
     
     begin {
         
-        #region case-correct ArchiveFile Path
-        $FileSystemObject = New-Object -ComObject Scripting.FileSystemObject
-        $ArchiveFile = $FileSystemObject.GetAbsolutePathName((Get-Item $ArchiveFile).FullName)
-        Remove-Variable FileSystemObject | Out-null
-
-        If ($Extract.IsPresent -or $List.IsPresent){
-    
-            try {$TestPath = Test-Path $ArchiveFile -ErrorAction Stop}
-            catch {throw "$ArchiveFile doesn't exist, stopping"}
+        #region case-correct and check ArchiveFile Path
+        try {$ArchiveFile = Get-AbsolutePath $ArchiveFile}
+        catch {throw "$ArchiveFile is not a valid path"}
         
-            }
         #endregion case-correct
 
         If ((Get-Alias 7z -ErrorAction SilentlyContinue).Count -eq 0){
@@ -245,7 +253,120 @@ Function Get-ArchiveContents {
 } #Close Function Get-ArchiveContents
 
 Function Extract-Archive {
+    [CmdletBinding()] 
+    param( 
+        [ValidateScript({$_ -le ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads, #-m -mmt(1-16)
+        [Alias('Pass')][string]$Password, #-p
+        [ValidateScript({Test-Path $_})][Alias('Destination')][string]$Target,
+        [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
+        [Alias('KeepLog')][switch]$KeepLogfile,
+        [Alias('Quiet')][switch]$Silent
+        )
+    begin {
+        #region case-correct and check ArchiveFile Path
+        try {$ArchiveFile = Get-AbsolutePath $ArchiveFile}
+        catch {throw "$ArchiveFile is not a valid path"}
+        #endregion case-correct
 
+        #region case-correct and check Target Path
+        try {$Target = Get-AbsolutePath $Target}
+        catch {throw "$Target is not a valid path"}
+        #endregion case-correct
+
+        #region Initialize 7zip alias
+        If ((Get-Alias 7z -ErrorAction SilentlyContinue).Count -eq 0){
+        
+            Try {Initialize-7zip -ErrorAction Stop}
+            Catch {throw "Unable to initialize 7zip alias"}
+        }
+        #endregion Initialize 7zip alias
+
+        #region Define vars and build Params
+        
+        $Loud = !($Silent.IsPresent)
+
+        $7zParameters = ""
+        $7zParameters += " x " + '"' + "$ArchiveFile" + '"' + " -o" + '"' + "$Target" + '" '
+        If ($null -ne $CPUThreads){$7zParameters += "-mmt$CPUThreads "}
+        If ($null -ne $Password){$7zParameters += "-p$Password "}
+        $7zParameters += "-y"
+        
+        $Operation = "Extract" 
+
+        #endregion Define vars
+
+        $LogFile = "$((Get-Location).Path)\$(get-random -Minimum 1000000 -Maximum 9999999).log"
+        
+        try {"Write test" | Out-File $LogFile -ErrorAction Stop}
+        catch {throw "Unable to write data out to new logfile $LogFile"}
+    
+        $LogfileCleanup = {If (!($KeepLogfile.IsPresent)){Remove-Item $LogFile -ErrorAction SilentlyContinue}}
+    
+        #endregion Build Logfile
+    
+        #region Build Scriptblock
+    
+        $Scriptblock = {
+    
+        $WorkingDirectory = $args[0]
+        $7zPath = $args[1]
+        $7zParameters = $args[2]
+        $LogFile = $args[3]
+    
+        try {Set-Location $WorkingDirectory -ErrorAction Stop}
+        catch {throw "Job is unable to move to $WorkingDirectory"}
+    
+        Set-Alias -Name 7z -Value $7zPath
+    
+        $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
+    
+        return $RunCommand
+    
+        }
+        #endregion Build Scriptblock
+
+            #region Build ESCAPE key Interception
+        If ($Loud){
+            $Global:Interrupted = $False #We have to use Global
+        
+            #This blocks CTRL+C and flushes the input buffer
+            $InitializeInputBuffer = {
+            [Console]::TreatControlCAsInput = $True
+            Start-Sleep -Milliseconds 100
+            $Host.UI.RawUI.FlushInputBuffer()
+            }
+
+            $InterceptEscapeKey = {
+                
+                If ($Host.UI.RawUI.KeyAvailable -and ($Key = $Host.UI.RawUI.ReadKey("AllowCtrlC,NoEcho,IncludeKeyUp"))) {
+            
+                    If ([Int]$Key.Character -eq 27) {
+                    
+                        Write-Warning "Escape Key detected, terminating operation (please wait)"
+                        $Global:Interrupted = $True
+                        [Console]::TreatControlCAsInput = $False
+            
+                }
+            
+                $Host.UI.RawUI.FlushInputBuffer()
+                
+            }
+            
+            }        
+
+        }
+    #endregion Build ESCAPE key Interception
+
+    }
+
+    process {
+
+
+
+
+
+
+    }
 
 
 
