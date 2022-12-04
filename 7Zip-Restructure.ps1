@@ -306,19 +306,19 @@ Function Extract-Archive {
     
         $Scriptblock = {
     
-        $WorkingDirectory = $args[0]
-        $7zPath = $args[1]
-        $7zParameters = $args[2]
-        $LogFile = $args[3]
-    
-        try {Set-Location $WorkingDirectory -ErrorAction Stop}
-        catch {throw "Job is unable to move to $WorkingDirectory"}
-    
-        Set-Alias -Name 7z -Value $7zPath
-    
-        $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
-    
-        return $RunCommand
+            $WorkingDirectory = $args[0]
+            $7zPath = $args[1]
+            $7zParameters = $args[2]
+            $LogFile = $args[3]
+        
+            try {Set-Location $WorkingDirectory -ErrorAction Stop}
+            catch {throw "Job is unable to move to $WorkingDirectory"}
+        
+            Set-Alias -Name 7z -Value $7zPath
+        
+            $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
+        
+            return $RunCommand
     
         }
         #endregion Build Scriptblock
@@ -425,7 +425,7 @@ Function Extract-Archive {
                 
             $Done = $False
 
-            $FileCount = $TechTable.Count
+            $FileCount = $ArchiveContents.Count
             $MoreThanOneFile = [bool]($FileCount -gt 1)
 
             $JobStatus = Get-Job ($Job.Id)
@@ -493,7 +493,7 @@ Function Extract-Archive {
                         $LogLatest = Get-Content $LogFile
                         $VolLine = $LogLatest.IndexOf($LogLatest.Where({$_ -match "Volumes ="}))
                         
-                        If ($VolLine -gt 0){
+                        If ($VolLine -gt 0){ #Covers '0' (returned $false in [bool]), and '-1' (returned "none" as [int])
                             
                             $ArchiveFilesCount = ($LogLatest[$VolLine] -split '=')[1].Trim()
 
@@ -531,11 +531,11 @@ Function Extract-Archive {
 
             Switch (($JobStatus).State){
 
-            { $_ -eq "Running"}{Stop-Job -Id ($Job.Id); Remove-Job -Id ($Job.Id)}
+            { $_ -eq "Running"}{Stop-Job -Id ($Job.Id); Remove-Job -Id ($Job.Id); $Successful = $False}
 
-            {$_ -eq "Completed"}{$JobContents = ($Job | Receive-Job); Remove-Job ($Job.Id)}
+            {$_ -eq "Completed"}{$JobContents = ($Job | Receive-Job); Remove-Job ($Job.Id); $Successful = $True}
 
-            {$_ -eq "Failed"}{&$LogfileCleanup; $JobError = $JobStatus.Error; Remove-Job ($Job.Id); throw "Job errored: $JobError"}
+            {$_ -eq "Failed"}{&$LogfileCleanup; $JobError = $JobStatus.Error; Remove-Job ($Job.Id); $Successful = $False}
 
             } #Close Switch Get-Job (ID) State
 
@@ -550,6 +550,8 @@ Function Extract-Archive {
         &$LogfileCleanup
 
         If ($Global:Interrupted -eq $True){throw "Operation was interrupted before completion"}
+
+        If ($Successful -eq $False){throw "Job errored; job found in state $($JobStatus.State) after completion"}
 
     }
 
