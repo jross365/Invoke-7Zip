@@ -323,8 +323,6 @@ Function Extract-Archive {
         }
         #endregion Build Scriptblock
 
-        #region
-
         #region Build ESCAPE key Interception
         If ($Loud){
             $Global:Interrupted = $False #We have to use Global
@@ -565,7 +563,7 @@ Function Create-Archive {
         [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize, #-v
         [ValidateSet("7z","xz","zip","gzip","bzip2","tar")][Alias('Type')][string]$ArchiveType, #-tzip,-t7z,etc
         [Alias('Pass')][string]$Password, #-p
-        [ValidateScript({Test-Path $_})][string]$Target,
+        [ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
         [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
         [Alias('KeepLog')][switch]$KeepLogfile,
         [Alias('Quiet')][switch]$Silent
@@ -573,45 +571,302 @@ Function Create-Archive {
 
     begin {
   
-
         #region Case-correct the File/Directory (7zip is case-sensitive)
-        $FileSystemObject = New-Object -ComObject Scripting.FileSystemObject
+        #region case-correct and check paths and aliases
+        try {$ArchiveFile = Get-AbsolutePath $ArchiveFile}
+        catch {throw "$ArchiveFile is not a valid path"}
+
+        try {$Source = Get-AbsolutePath $Source}
+        catch {throw "$Source is not a valid path"}
+
+        If ((Get-Alias 7z -ErrorAction SilentlyContinue).Count -eq 0){
         
-        $ArchiveFile = $FileSystemObject.GetAbsolutePathName((Get-Item $ArchiveFile).FullName)
-        
-        If ($null -eq $Target -or $Target.Length -eq 0){$Target = $FileSystemObject.GetAbsolutePathName((Get-Location).Path)}
-        Else {$Target = $FileSystemObject.GetAbsolutePathName($Target)}
-        
-        Remove-Variable FileSystemObject | Out-null
-        
+            Try {Initialize-7zip -ErrorAction Stop}
+            Catch {throw "Unable to initialize 7zip alias"}
+        }
+
+        $7zPath = $Global:szPath #Exported by Initialize-7Zip
         #endregion Case-correct the File/Directory
         
-        #region Validate File/Directory parameters, based on switches
-        If ($Add.IsPresent){
-        
-            try {!($TestPath = Test-Path $ArchiveFile -ErrorAction Stop)}
-            catch {throw "$ArchiveFile already exists, stopping"}
-        
-        }
-        If ($Add.IsPresent -or $Extract.IsPresent){
-    
-            try {$TestPath = Test-Path $Target -ErrorAction Stop}
-            catch {throw "$Target doesn't exist, stopping"}
-        
-        }
-
-        #endregion Validate File/Directory parameters, based on switches
-
         $Loud = !($Silent.IsPresent)
 
+        #region Handle type idiosyncracies
+        #ref: https://www.scottklement.com/p7zip/MANUAL/switches/method.htm
+        #bzip2:
+            # - Can only do single-files
+            # - accepts compression (5,7,9)
+
+        #endregion Handle type idiosyncracies
+
+        #region Define 7z parameters
+        $7zParameters = ""
+    
+        $Operation = "None"
+        
+        $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Source" + '" '
+    
+        $7zParameters += "-mmt=on -mx$CompressionLevel "
+        
+        If ($null -ne $CPUThreads){$7zParameters += "-mmt$CPUThreads "}
+    
+        $7zParameters += "-t$ArchiveType "
+        
+        If ($null -ne $VolumeSize){$7zParameters += "-v$VolumeSize "}
+        If ($null -ne $Password){$7zParameters += "-p$Password "}
+        
+        $7zParameters += "-y"
+    
+        $Operation = "Add"
+        #endregion Define 7z parameters
+
+        #region Build Logfile
+            
+        $LogFile = "$((Get-Location).Path)\$(get-random -Minimum 1000000 -Maximum 9999999).log"
+        
+        try {"Write test" | Out-File $LogFile -ErrorAction Stop}
+        catch {throw "Unable to write data out to new logfile $LogFile"}
+        
+        $LogfileCleanup = {If (!($KeepLogfile.IsPresent)){Remove-Item $LogFile -ErrorAction SilentlyContinue}}
+        
+        #endregion Build Logfile
+            
+        #region Build Scriptblock
+        $Scriptblock = {
+        
+            $WorkingDirectory = $args[0]
+            $7zPath = $args[1]
+            $7zParameters = $args[2]
+            $LogFile = $args[3]
+        
+            try {Set-Location $WorkingDirectory -ErrorAction Stop}
+            catch {throw "Job is unable to move to $WorkingDirectory"}
+        
+            Set-Alias -Name 7z -Value $7zPath
+        
+            $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
+        
+            return $RunCommand
+        
+            }
+
+        
+        #region Build ESCAPE key Interception
+        If ($Loud){
+            $Global:Interrupted = $False #We have to use Global
+        
+            #This blocks CTRL+C and flushes the input buffer
+            $InitializeInputBuffer = {
+            [Console]::TreatControlCAsInput = $True
+            Start-Sleep -Milliseconds 100
+            $Host.UI.RawUI.FlushInputBuffer()
+            }
+
+            $InterceptEscapeKey = {
+                
+                If ($Host.UI.RawUI.KeyAvailable -and ($Key = $Host.UI.RawUI.ReadKey("AllowCtrlC,NoEcho,IncludeKeyUp"))) {
+            
+                    If ([Int]$Key.Character -eq 27) {
+                    
+                        Write-Warning "Escape Key detected, terminating operation (please wait)"
+                        $Global:Interrupted = $True
+                        [Console]::TreatControlCAsInput = $False
+            
+                }
+            
+                $Host.UI.RawUI.FlushInputBuffer()
+                
+            }
+            
+            }        
+
+        }
+    #endregion Build ESCAPE key Interception
 
     } #End begin
 
     process {
 
-            
-    } #end process
+        try {$ArchiveContents = Get-ArchiveContents -ArchiveFile $ArchiveFile -ShowTechnicalInfo}
+        catch {throw "Errors encountered when enumerating contents of $ArchiveContents"}
 
+        $EncryptedTags = $ArchiveContents.Where({$_.Encrypted -eq "+"}) | Sort-Object -Unique
+
+        If ($EncryptedTags.Count -gt 0 -and ($null -eq $Password -or $Password.Length -eq 0)){throw "Archive is encrypted, but no password was specified"}
+
+        #region Test the Password
+       If ($null -ne $Password -and $null -ne $EncryptedTags){ 
+   
+           #Find the smallest file to test password against
+           $SmallestFile = $ArchiveContents.Where({$_.Encrypted -eq '+'}) | Sort-Object Size | Select-Object -First 1
+           
+           #There seems to be a 7zip bug where -i!\<Path> tests more than the specified file. No idea why, but it's not solvable via Powershell
+           $PasswordTest = 7z t $ArchiveFile -p"$Password" -i!\$($SmallestFile.Path) -bso0 -bd 2>&1
+                   
+           If ($PasswordTest.Count -gt 0){$TestErrors = $PasswordTest.Where({$_.Exception.Message.Length -gt 0}).Exception.Message}
+       
+           Switch ($TestErrors.Count){
+       
+               0 {} #Do nothing
+       
+               1 {
+                   &$LogfileCleanup
+                   throw $TestErrors
+               }
+       
+               {$_ -gt 1}{
+                   &$LogfileCleanup
+                   $TestErrors.ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}
+                   throw ($TestErrors[0])
+               }
+       
+               Default {
+                   &$LogfileCleanup
+                   throw "No idea what happened"
+               }
+       
+               }
+       
+           }
+           #endregion Test the Password
+
+           #region Pre-execution clean-up
+           $PreviousJobs =  Get-Job -Name "7zExtract" -ErrorAction SilentlyContinue
+
+           If ($PreviousJobs.Count -gt 0){
+
+               $PreviousJobs | Foreach-Object {
+
+                   Stop-Job -Id ($_.Id) | Out-Null
+                   Remove-Job -Id ($_.Id) | Out-Null
+
+               }
+
+           } #Close PreviousJobs.Count
+           #endregion Pre-execution clean-up
+
+           #region Heavy lifting
+
+           $Job = Start-Job -Name "7zExtract" -ScriptBlock $ScriptBlock -ArgumentList @("$((Get-Location).Path)",$7zPath,$7zParameters,$LogFile)
+               
+           $Done = $False
+
+           $FileCount = $ArchiveContents.Count
+           $MoreThanOneFile = [bool]($FileCount -gt 1)
+
+           $JobStatus = Get-Job ($Job.Id)
+
+           If ($JobStatus.State -notmatch 'Completed|Running'){
+
+               Stop-Job -Id ($JobStatus.Id) | Out-Null
+               Remove-Job -Id ($JobStatus.Id) | Out-Null
+
+               throw "Job stopped in state $($JobStatus.State) while running 7zip extract, terminating"
+
+           }
+           
+           If ($Loud){
+               &$InitializeInputBuffer
+               Write-Verbose "Press ESCAPE key to interrupt extract operation" -Verbose
+           }
+
+           #Predefine variables for parsing out original file name, number of files later:
+           $ExtractionBegun = $False
+           $LogfileRead = $False
+
+           Do {
+
+               Start-Sleep -Milliseconds 250 #Sleep 1/4 of a second
+
+               $LogLatest = (Get-Content $LogFile -Tail 6).Where({$_ -match '(\d+)%|(\bEverything is Ok\b)'}) | Select-Object -Last 1
+
+               If (!$Loud -and [bool]($LogLatest -eq "Everything is Ok")){$Done = $True}
+
+               If ($Loud){
+
+                   If ($null -eq $LogLatest -or $LogLatest.Length -eq 0){Start-Sleep -Milliseconds 100; $OnFile = 0; $File = "-"; $Percent = 0}
+
+                   ElseIf ([bool]($LogLatest -eq "Everything is Ok")){$Done = $True; $OnFile = $FileCount; $File = "None (Complete)"; $Percent = 100}
+
+                   ElseIf ($LogLatest -eq '  0%'){
+                                               $OnFile = 0
+                                               $File = "-"
+                                               $Percent = 0
+                                               $ExtractionBegun = !$ExtractionBegun
+
+                                           }
+
+                   ElseIf (!$MoreThanOneFile){
+                       
+                                               $Percent,$File = ($LogLatest -split ' - ').Trim()
+                                               $Percent = $Percent.TrimEnd('%').Trim()
+                                               $OnFile = 1
+                                               $ExtractionBegun = !$ExtractionBegun
+
+                                           }
+
+                   ElseIf ($MoreThanOneFile){
+                       
+                                               $Percent,$File = ($LogLatest -split ' - ').Trim()
+                                               $Percent,$OnFile = ($Percent -split '%').Trim()
+                                               $ExtractionBegun = !$ExtractionBegun
+
+                                           }
+
+                   #Capture the original file name, number of files from logfile for split archive:
+                   If ($ExtractionBegun -and !$LogfileRead){ 
+                       
+                       $LogLatest = Get-Content $LogFile
+                       $VolLine = $LogLatest.IndexOf($LogLatest.Where({$_ -match "Volumes ="}))
+                       
+                       If ($VolLine -gt 0){ #Covers '0' (returned $false in [bool]), and '-1' (returned "none" as [int])
+                           
+                           $ArchiveFilesCount = ($LogLatest[$VolLine] -split '=')[1].Trim()
+
+                           Do {
+                               $VolLine++
+                               $LineContents = $LogLatest[$VolLine]
+                           }
+                           Until ($LineContents -match 'Path =')
+
+                           $OriginalFilename = ($LineContents -split '=')[1].Trim()
+
+                           $ArchiveFile = "$OriginalFileName ($ArchiveFilesCount files)"
+                       }
+
+                       $LogfileRead = $True
+
+                   }
+
+                   Write-Progress -Activity "Extracting $ArchiveFile" -Status "$OnFile of $FileCount | Extracting $File" -PercentComplete $Percent
+                   &$InterceptEscapeKey
+               }
+
+           } #Close Do
+           Until ($Done -eq $True -or $Global:Interrupted -eq $True)
+
+           If ($Loud){
+
+               Write-Progress -Activity "Extracting $ArchiveFile" -Status "Ready" -Completed
+
+               If ($Global:Interrupted -eq $True){$Operation = "$Operation Interrupted"}
+
+           }
+
+           $JobStatus = Get-Job ($Job.Id)
+
+           Switch (($JobStatus).State){
+
+           { $_ -eq "Running"}{Stop-Job -Id ($Job.Id); Remove-Job -Id ($Job.Id); $Successful = $False}
+
+           {$_ -eq "Completed"}{$JobContents = ($Job | Receive-Job); Remove-Job ($Job.Id); $Successful = $True}
+
+           {$_ -eq "Failed"}{&$LogfileCleanup; $JobError = $JobStatus.Error; Remove-Job ($Job.Id); $Successful = $False}
+
+           } #Close Switch Get-Job (ID) State
+
+           #endregion Heavy lifting
+           
+   } #end process
     end {
 
 
