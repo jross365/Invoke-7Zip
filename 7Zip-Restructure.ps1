@@ -559,9 +559,18 @@ Function Create-Archive {
     [CmdletBinding()] 
     param( 
         [ValidateScript({$_ -le ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads, #-m -mmt(1-16)
-        [ValidateRange(1,9)][Alias('Level')][int]$CompressionLevel, #-m -mx(1-9)
+        [ValidatePattern('[13579]')][Alias('Level')][int]$CompressionLevel, #-m -mx(1-9)
         [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize, #-v
         [ValidateSet("7z","xz","zip","gzip","bzip2","tar")][Alias('Type')][string]$ArchiveType, #-tzip,-t7z,etc
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][switch]$Zip,
+        [Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$GZip,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$Method,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][boolean]$Multithreading,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][boolean]$PreserveNTFSTimestamps,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][boolean]$UseLocalCodePage,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][boolean]$UseUTF8ForNonASCIISymbols,
+        [ValidateSet()][string]$Method, # a
         [Alias('Pass')][string]$Password, #-p
         [ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
         [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
@@ -569,6 +578,7 @@ Function Create-Archive {
         [Alias('Quiet')][switch]$Silent
         )
 
+        #$7zParameters = 'a "D:\marchtest\Multifiles_test2.bzip2" "D:\multiarchive\2022-06-19 20-44-58.mkv" -mx=5 -tbzip2 -V4G -mmt=12 -y'
     begin {
   
         #region Case-correct the File/Directory (7zip is case-sensitive)
