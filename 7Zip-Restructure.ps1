@@ -576,7 +576,7 @@ Function Create-Archive {
         [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$UseUTF8ForNonASCIISymbols,
         [Parameter(ParameterSetName='BZip2',Mandatory=$False)][ValidateSet("Normal","Maximum","Ultra")][string]$PassesMode, #-mpass 1,2,7
         [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][ValidatePattern('[13579]')][int]$CompressionLevel, #-m -mx(1-9)
-        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]]$DisableSolidMode, #ms=off
+        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableSolidMode, #ms=off
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableExeCompression, #mf=off
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableHeaderCompression, #mhc=off
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$EncryptHeader, #mhe=on
