@@ -558,18 +558,30 @@ Function Extract-Archive {
 Function Create-Archive {
     [CmdletBinding()] 
     param( 
-        [ValidateScript({$_ -le ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads, #-m -mmt(1-16)
-        [ValidatePattern('[13579]')][Alias('Level')][int]$CompressionLevel, #-m -mx(1-9)
+        #[ValidateScript({$_ -le ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads, #-m -mmt(1-16)
         [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize, #-v
-        [ValidateSet("7z","xz","zip","gzip","bzip2","tar")][Alias('Type')][string]$ArchiveType, #-tzip,-t7z,etc
+        #[ValidateSet("7z","xz","zip","gzip","bzip2","tar")][Alias('Type')][string]$ArchiveType, #-tzip,-t7z,etc
         [Parameter(ParameterSetName='Zip',Mandatory=$False)][switch]$Zip,
-        [Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$GZip,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$Method,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][boolean]$Multithreading,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][boolean]$PreserveNTFSTimestamps,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][boolean]$UseLocalCodePage,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][boolean]$UseUTF8ForNonASCIISymbols,
+        [Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$GZip, #-tgzip
+        [Parameter(ParameterSetName='BZip2',Mandatory=$False)][switch]$BZip2,
+        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$7z,
+        [Parameter(ParameterSetName='xz',Mandatory=$False)][switch]$Xz,
+        [Parameter(ParameterSetName='tar',Mandatory=$False)][switch]$Tar,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod, #mm=Deflate
+        #[Parameter(ParameterSetName='Zip',Mandatory=$False)][ValidateSet("LZMA","PPMd","BZip2","Deflate","BCJ","BCJ2","Copy")][string]$7zMethod, #
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='BZip2',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$Multithreading,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod, #mem=ZipCrypto
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$PreserveNTFSTimestamps,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$UseLocalCodePage,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$UseUTF8ForNonASCIISymbols,
+        [Parameter(ParameterSetName='BZip2',Mandatory=$False)][ValidateSet("Normal","Maximum","Ultra")][string]$PassesMode, #-mpass 1,2,7
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][ValidatePattern('[13579]')][int]$CompressionLevel, #-m -mx(1-9)
+        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]]$DisableSolidMode, #ms=off
+        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableExeCompression, #mf=off
+        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableHeaderCompression, #mhc=off
+        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$EncryptHeader, #mhe=on
+        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$PreserveCreationTimestamps, #tc=on
+        
         [ValidateSet()][string]$Method, # a
         [Alias('Pass')][string]$Password, #-p
         [ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
