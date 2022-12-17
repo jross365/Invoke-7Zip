@@ -581,8 +581,6 @@ Function Create-Archive {
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableHeaderCompression, #mhc=off
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$EncryptHeader, #mhe=on
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$PreserveCreationTimestamps, #tc=on
-        
-        [ValidateSet()][string]$Method, # a
         [Alias('Pass')][string]$Password, #-p
         [ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
         [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
@@ -593,13 +591,14 @@ Function Create-Archive {
         #$7zParameters = 'a "D:\marchtest\Multifiles_test2.bzip2" "D:\multiarchive\2022-06-19 20-44-58.mkv" -mx=5 -tbzip2 -V4G -mmt=12 -y'
     begin {
   
-        #region Case-correct the File/Directory (7zip is case-sensitive)
         #region case-correct and check paths and aliases
-        try {$ArchiveFile = Get-AbsolutePath $ArchiveFile}
-        catch {throw "$ArchiveFile is not a valid path"}
-
+        
+        If (Test-Path "$ArchiveFile"){throw "$ArchiveFile exists. Please specify a new filename or delete the existing file"}
+        
         try {$Source = Get-AbsolutePath $Source}
         catch {throw "$Source is not a valid path"}
+
+        If (($Xz.IsPresent -or $BZip2.IsPresent) -and (Get-Item $Source).PsIsContainer -eq $True){throw "$Source is a directory; XZ and BZIP2 files can only compress single files"}
 
         If ((Get-Alias 7z -ErrorAction SilentlyContinue).Count -eq 0){
         
@@ -611,6 +610,73 @@ Function Create-Archive {
         #endregion Case-correct the File/Directory
         
         $Loud = !($Silent.IsPresent)
+
+        #region Capture Archive Type and Define Parameters
+        $ArchiveType = "None"
+        
+        If ($Zip.IsPresent){$ArchiveType = "zip"}
+        ElseIf ($BZip2.IsPresent){$ArchiveType = "bzip2"}
+        ElseIf ($GZip.IsPresent){$ArchiveType = "gzip"}
+        ElseIf ($7z.IsPresent){$ArchiveType = "7z"}
+        ElseIf ($Xz.IsPresent){$ArchiveType = "Xz"}
+        ElseIf ($Tar.IsPresent){$ArchiveType = "tar"}
+        Else {throw "Indeterminable archive type; please specify -<ArchiveType> switch parameter"}
+
+        $7zParameters = ""
+        $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Source" + '" ' + "-t$ArchiveType"
+
+        Switch ($ArchiveType){
+
+        {$_ -eq "zip"}{}
+        {$_ -eq "bzip2"}{}
+        {$_ -eq "gzip"}{}
+        {$_ -eq "7z"}{}
+        {$_ -eq "Xz"}{}
+        {$_ -eq "tar"}{}
+
+        } 
+
+
+        If ($null -ne $CPUThreads){$7zParameters += "-mmt$CPUThreads "}
+        If ($null -ne $Password){$7zParameters += "-p$Password "}
+        $7zParameters += "-y"
+        
+        $Operation = "Extract" 
+
+        #endregion Capture Archive Type and Define Parameters
+
+        $LogFile = "$((Get-Location).Path)\$(get-random -Minimum 1000000 -Maximum 9999999).log"
+        
+        try {"Write test" | Out-File $LogFile -ErrorAction Stop}
+        catch {throw "Unable to write data out to new logfile $LogFile"}
+    
+        $LogfileCleanup = {If (!($KeepLogfile.IsPresent)){Remove-Item $LogFile -ErrorAction SilentlyContinue}}
+    
+        #endregion Build Logfile
+    
+        #region Build Scriptblock
+    
+        $Scriptblock = {
+    
+            $WorkingDirectory = $args[0]
+            $7zPath = $args[1]
+            $7zParameters = $args[2]
+            $LogFile = $args[3]
+        
+            try {Set-Location $WorkingDirectory -ErrorAction Stop}
+            catch {throw "Job is unable to move to $WorkingDirectory"}
+        
+            Set-Alias -Name 7z -Value $7zPath
+        
+            $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
+        
+            return $RunCommand
+    
+        }
+        #endregion Build Scriptblock
+
+
+        #endregion Capture Archive Type
 
         #region Handle type idiosyncracies
         #ref: https://www.scottklement.com/p7zip/MANUAL/switches/method.htm
