@@ -293,7 +293,7 @@ Function Extract-Archive {
 
         #endregion Define vars
 
-        $LogFile = "$((Get-Location).Path)\$(get-random -Minimum 1000000 -Maximum 9999999).log"
+        $LogFile = "$((Get-Location).Path)\$(get-random -Minimum 1000000 -Maximum 9999999)-extract.log"
         
         try {"Write test" | Out-File $LogFile -ErrorAction Stop}
         catch {throw "Unable to write data out to new logfile $LogFile"}
@@ -315,8 +315,10 @@ Function Extract-Archive {
             catch {throw "Job is unable to move to $WorkingDirectory"}
         
             Set-Alias -Name 7z -Value $7zPath
-        
-            $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
+            
+            "Parameters: $7zParameters" > $LogFile
+
+            $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 >> $LogFile
         
             return $RunCommand
     
@@ -558,32 +560,29 @@ Function Extract-Archive {
 Function Create-Archive {
     [CmdletBinding()] 
     param( 
-        #[ValidateScript({$_ -le ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads, #-m -mmt(1-16)
+        [ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
+        [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
         [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize, #-v
-        #[ValidateSet("7z","xz","zip","gzip","bzip2","tar")][Alias('Type')][string]$ArchiveType, #-tzip,-t7z,etc
         [Parameter(ParameterSetName='Zip',Mandatory=$False)][switch]$Zip,
         [Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$GZip, #-tgzip
         [Parameter(ParameterSetName='BZip2',Mandatory=$False)][switch]$BZip2,
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$7z,
-        [Parameter(ParameterSetName='xz',Mandatory=$False)][switch]$Xz,
+        [Parameter(ParameterSetName='Xz',Mandatory=$False)][switch]$Xz,
         [Parameter(ParameterSetName='tar',Mandatory=$False)][switch]$Tar,
         [Parameter(ParameterSetName='Zip',Mandatory=$False)][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod, #mm=Deflate
-        #[Parameter(ParameterSetName='Zip',Mandatory=$False)][ValidateSet("LZMA","PPMd","BZip2","Deflate","BCJ","BCJ2","Copy")][string]$7zMethod, #
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='BZip2',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$Multithreading,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod, #mem=ZipCrypto
         [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$PreserveNTFSTimestamps,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='BZip2',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$UseMultithreading,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod, #mem=ZipCrypto
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$PreserveTimestamps,
         [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$UseLocalCodePage,
         [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$UseUTF8ForNonASCIISymbols,
-        [Parameter(ParameterSetName='BZip2',Mandatory=$False)][ValidateSet("Normal","Maximum","Ultra")][string]$PassesMode, #-mpass 1,2,7
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][ValidatePattern('[13579]')][int]$CompressionLevel, #-m -mx(1-9)
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='BZip2',Mandatory=$False)][int]$Passes,
+        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][ValidatePattern('[013579]')][int]$CompressionLevel, #-m -mx(1-9)
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableSolidMode, #ms=off
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableExeCompression, #mf=off
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableHeaderCompression, #mhc=off
         [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$EncryptHeader, #mhe=on
-        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$PreserveCreationTimestamps, #tc=on
         [Alias('Pass')][string]$Password, #-p
-        [ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
-        [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
         [Alias('KeepLog')][switch]$KeepLogfile,
         [Alias('Quiet')][switch]$Silent
         )
@@ -591,14 +590,14 @@ Function Create-Archive {
         #$7zParameters = 'a "D:\marchtest\Multifiles_test2.bzip2" "D:\multiarchive\2022-06-19 20-44-58.mkv" -mx=5 -tbzip2 -V4G -mmt=12 -y'
     begin {
   
-        #region case-correct and check paths and aliases
+        #region Case-correct and check paths and aliases
         
-        If (Test-Path "$ArchiveFile"){throw "$ArchiveFile exists. Please specify a new filename or delete the existing file"}
+        If (Test-Path "$ArchiveFile"){throw "$ArchiveFile exists. Please specify a different filename or delete the existing file first"}
         
         try {$Source = Get-AbsolutePath $Source}
         catch {throw "$Source is not a valid path"}
 
-        If (($Xz.IsPresent -or $BZip2.IsPresent) -and (Get-Item $Source).PsIsContainer -eq $True){throw "$Source is a directory; XZ and BZIP2 files can only compress single files"}
+        If (($Xz.IsPresent -or $BZip2.IsPresent) -and (Get-Item $Source).PsIsContainer -eq $True){throw "$Source is a directory; XZ and BZIP2 can only compress single files. Try TARing it first"}
 
         If ((Get-Alias 7z -ErrorAction SilentlyContinue).Count -eq 0){
         
@@ -611,41 +610,91 @@ Function Create-Archive {
         
         $Loud = !($Silent.IsPresent)
 
-        #region Capture Archive Type and Define Parameters
+        #region Capture Archive Type
+        
         $ArchiveType = "None"
         
         If ($Zip.IsPresent){$ArchiveType = "zip"}
         ElseIf ($BZip2.IsPresent){$ArchiveType = "bzip2"}
         ElseIf ($GZip.IsPresent){$ArchiveType = "gzip"}
         ElseIf ($7z.IsPresent){$ArchiveType = "7z"}
-        ElseIf ($Xz.IsPresent){$ArchiveType = "Xz"}
+        ElseIf ($Xz.IsPresent){$ArchiveType = "xz"}
         ElseIf ($Tar.IsPresent){$ArchiveType = "tar"}
         Else {throw "Indeterminable archive type; please specify -<ArchiveType> switch parameter"}
 
+        #endregion Capture Archive Type
+
+        #region Define Generic/Broad Parameters
+
         $7zParameters = ""
-        $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Source" + '" ' + "-t$ArchiveType"
+        $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Source" + '" ' + "-t$ArchiveType -r "
+
+        If ($UseMultithreading.IsPresent){
+            
+            try {$7zParameters += "-mmt=$((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1) "}
+            catch {throw "Failed to enumerate number of logical processors - possibly a system permission or WMI service issue"}
+        
+        }
+        
+        If ($null -ne $Password){$7zParameters += "-p$Password "}
+
+        If ($null -ne $CompressionLevel){$7zParameters += "-mx$CompressionLevel "}
+
+        If ($null -ne $VolumeSize){$7zParameters += "-v$VolumeSize "}
+
+        #endregion  Define Generic Parameters
+
+        #region Define Archive-specific Parameters
 
         Switch ($ArchiveType){
 
-        {$_ -eq "zip"}{}
-        {$_ -eq "bzip2"}{}
-        {$_ -eq "gzip"}{}
-        {$_ -eq "7z"}{}
-        {$_ -eq "Xz"}{}
-        {$_ -eq "tar"}{}
+        {$_ -eq "zip" -or $_ -eq "gzip"}{
+
+            If ($null -ne $Passes){
+                If ($ZipMethod -notmatch 'Deflate|Bzip2' -and $ZipMethod.Length -gt 0){throw "-Passes parameter can only be used with -ZipMethod Deflate [default] or Bzip2"}
+                If (($ZipMethod -match 'Deflate' -or $ZipMethod.Length -eq 0) -and ($Passes -gt 15 -or $Passes -lt 1)){throw "-Passes parameter must be between 1 and 15 for Deflate [default]"}
+                If (($ZipMethod -eq 'BZip2') -and ($Passes -gt 10 -or $Passes -lt 1)){throw "-Passes parameter must be between 1 and 10 for -ZipMethod Bzip2"}
+
+            $7zParameters += "-mpass=$Pass "
+
+            }
+
+            If ($ZipMethod.Length -gt 0){$7zParameters += "-mm=$ZipMethod "}
+            If ($EncryptionMethod.Length -gt 0){$7zParameters += "-mem=$EncryptionMethod "}
+            If ($PreserveTimestamps.IsPresent){$7zParameters += "-mtc=on "}
+            If ($UseLocalCodePage.IsPresent){$7zParameters += "-mcl=on "}
+            If ($UseUTF8ForNonASCIISymbols.IsPresent){$7zParameters += "-mcu=on "}
+
+        }
+
+        {$_ -eq "bzip2"}{
+
+            If ($null -ne $Passes){
+
+                If ($Passes -gt 10 -or $Passes -lt 1){throw "-Passes parameter must be between 1 and 10 for Bzip2 compression"}
+
+            $7zParameters += "-mpass=$Pass "
+
+            }
+
+        }
+        
+        {$_ -eq "7z"}{
+
+            If ($PreserveTimestamps.IsPresent){$7zParameters += "-mtc=on "}
+            If ($DisableSolidMode.IsPresent){$7zParameters += "-ms=off "}
+            If ($DisableExeCompression.IsPresent){$7zParameters += "-mf=off "}
+            If ($DisableHeaderCompression.IsPresent){$7zParameters += "-mhc=off "}
+            If ($EncryptHeader.IsPresent){$7zParameters += "-mhe=on "}
+        }
+        {$_ -eq "xz"}{} #Nothing to do
+        {$_ -eq "tar"}{} #Nothing to do
 
         } 
 
+        #endregion Define Specific Parameters
 
-        If ($null -ne $CPUThreads){$7zParameters += "-mmt$CPUThreads "}
-        If ($null -ne $Password){$7zParameters += "-p$Password "}
-        $7zParameters += "-y"
-        
-        $Operation = "Extract" 
-
-        #endregion Capture Archive Type and Define Parameters
-
-        $LogFile = "$((Get-Location).Path)\$(get-random -Minimum 1000000 -Maximum 9999999).log"
+        $LogFile = "$((Get-Location).Path)\$(get-random -Minimum 1000000 -Maximum 9999999)-compress.log"
         
         try {"Write test" | Out-File $LogFile -ErrorAction Stop}
         catch {throw "Unable to write data out to new logfile $LogFile"}
@@ -667,77 +716,16 @@ Function Create-Archive {
             catch {throw "Job is unable to move to $WorkingDirectory"}
         
             Set-Alias -Name 7z -Value $7zPath
-        
-            $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
+            
+            "Parameters: $7zParameters" > $LogFile
+
+            $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 >> $LogFile
         
             return $RunCommand
     
         }
         #endregion Build Scriptblock
 
-
-        #endregion Capture Archive Type
-
-        #region Handle type idiosyncracies
-        #ref: https://www.scottklement.com/p7zip/MANUAL/switches/method.htm
-        #bzip2:
-            # - Can only do single-files
-            # - accepts compression (5,7,9)
-
-        #endregion Handle type idiosyncracies
-
-        #region Define 7z parameters
-        $7zParameters = ""
-    
-        $Operation = "None"
-        
-        $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Source" + '" '
-    
-        $7zParameters += "-mmt=on -mx$CompressionLevel "
-        
-        If ($null -ne $CPUThreads){$7zParameters += "-mmt$CPUThreads "}
-    
-        $7zParameters += "-t$ArchiveType "
-        
-        If ($null -ne $VolumeSize){$7zParameters += "-v$VolumeSize "}
-        If ($null -ne $Password){$7zParameters += "-p$Password "}
-        
-        $7zParameters += "-y"
-    
-        $Operation = "Add"
-        #endregion Define 7z parameters
-
-        #region Build Logfile
-            
-        $LogFile = "$((Get-Location).Path)\$(get-random -Minimum 1000000 -Maximum 9999999).log"
-        
-        try {"Write test" | Out-File $LogFile -ErrorAction Stop}
-        catch {throw "Unable to write data out to new logfile $LogFile"}
-        
-        $LogfileCleanup = {If (!($KeepLogfile.IsPresent)){Remove-Item $LogFile -ErrorAction SilentlyContinue}}
-        
-        #endregion Build Logfile
-            
-        #region Build Scriptblock
-        $Scriptblock = {
-        
-            $WorkingDirectory = $args[0]
-            $7zPath = $args[1]
-            $7zParameters = $args[2]
-            $LogFile = $args[3]
-        
-            try {Set-Location $WorkingDirectory -ErrorAction Stop}
-            catch {throw "Job is unable to move to $WorkingDirectory"}
-        
-            Set-Alias -Name 7z -Value $7zPath
-        
-            $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
-        
-            return $RunCommand
-        
-            }
-
-        
         #region Build ESCAPE key Interception
         If ($Loud){
             $Global:Interrupted = $False #We have to use Global
@@ -774,51 +762,8 @@ Function Create-Archive {
 
     process {
 
-        try {$ArchiveContents = Get-ArchiveContents -ArchiveFile $ArchiveFile -ShowTechnicalInfo}
-        catch {throw "Errors encountered when enumerating contents of $ArchiveContents"}
-
-        $EncryptedTags = $ArchiveContents.Where({$_.Encrypted -eq "+"}) | Sort-Object -Unique
-
-        If ($EncryptedTags.Count -gt 0 -and ($null -eq $Password -or $Password.Length -eq 0)){throw "Archive is encrypted, but no password was specified"}
-
-        #region Test the Password
-       If ($null -ne $Password -and $null -ne $EncryptedTags){ 
-   
-           #Find the smallest file to test password against
-           $SmallestFile = $ArchiveContents.Where({$_.Encrypted -eq '+'}) | Sort-Object Size | Select-Object -First 1
-           
-           #There seems to be a 7zip bug where -i!\<Path> tests more than the specified file. No idea why, but it's not solvable via Powershell
-           $PasswordTest = 7z t $ArchiveFile -p"$Password" -i!\$($SmallestFile.Path) -bso0 -bd 2>&1
-                   
-           If ($PasswordTest.Count -gt 0){$TestErrors = $PasswordTest.Where({$_.Exception.Message.Length -gt 0}).Exception.Message}
-       
-           Switch ($TestErrors.Count){
-       
-               0 {} #Do nothing
-       
-               1 {
-                   &$LogfileCleanup
-                   throw $TestErrors
-               }
-       
-               {$_ -gt 1}{
-                   &$LogfileCleanup
-                   $TestErrors.ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}
-                   throw ($TestErrors[0])
-               }
-       
-               Default {
-                   &$LogfileCleanup
-                   throw "No idea what happened"
-               }
-       
-               }
-       
-           }
-           #endregion Test the Password
-
-           #region Pre-execution clean-up
-           $PreviousJobs =  Get-Job -Name "7zExtract" -ErrorAction SilentlyContinue
+            #region Pre-execution clean-up
+           $PreviousJobs =  Get-Job -Name "7zCompress" -ErrorAction SilentlyContinue
 
            If ($PreviousJobs.Count -gt 0){
 
@@ -834,7 +779,7 @@ Function Create-Archive {
 
            #region Heavy lifting
 
-           $Job = Start-Job -Name "7zExtract" -ScriptBlock $ScriptBlock -ArgumentList @("$((Get-Location).Path)",$7zPath,$7zParameters,$LogFile)
+           $Job = Start-Job -Name "7zCompress" -ScriptBlock $ScriptBlock -ArgumentList @("$((Get-Location).Path)",$7zPath,$7zParameters,$LogFile)
                
            $Done = $False
 
@@ -858,7 +803,7 @@ Function Create-Archive {
            }
 
            #Predefine variables for parsing out original file name, number of files later:
-           $ExtractionBegun = $False
+           $CompressionBegun = $False
            $LogfileRead = $False
 
            Do {
@@ -879,29 +824,29 @@ Function Create-Archive {
                                                $OnFile = 0
                                                $File = "-"
                                                $Percent = 0
-                                               $ExtractionBegun = !$ExtractionBegun
+                                               $CompressionBegun = !$CompressionBegun
 
                                            }
 
                    ElseIf (!$MoreThanOneFile){
                        
-                                               $Percent,$File = ($LogLatest -split ' - ').Trim()
+                                               $Percent,$File = ($LogLatest -split ' + ').Trim()
                                                $Percent = $Percent.TrimEnd('%').Trim()
                                                $OnFile = 1
-                                               $ExtractionBegun = !$ExtractionBegun
+                                               $CompressionBegun = !$CompressionBegun
 
                                            }
 
                    ElseIf ($MoreThanOneFile){
                        
-                                               $Percent,$File = ($LogLatest -split ' - ').Trim()
+                                               $Percent,$File = ($LogLatest -split ' + ').Trim()
                                                $Percent,$OnFile = ($Percent -split '%').Trim()
-                                               $ExtractionBegun = !$ExtractionBegun
+                                               $CompressionBegun = !$CompressionBegun
 
                                            }
 
                    #Capture the original file name, number of files from logfile for split archive:
-                   If ($ExtractionBegun -and !$LogfileRead){ 
+                   If ($CompressionBegun -and !$LogfileRead){ 
                        
                        $LogLatest = Get-Content $LogFile
                        $VolLine = $LogLatest.IndexOf($LogLatest.Where({$_ -match "Volumes ="}))
