@@ -636,11 +636,11 @@ Function Create-Archive {
         
         }
         
-        If ($null -ne $Password){$7zParameters += "-p$Password "}
+        If ($Password.Length -gt 0){$7zParameters += "-p$Password "}
 
-        If ($null -ne $CompressionLevel){$7zParameters += "-mx$CompressionLevel "}
+        If ($CompressionLevel.Length -gt 0){$7zParameters += "-mx$CompressionLevel "}
 
-        If ($null -ne $VolumeSize){$7zParameters += "-v$VolumeSize "}
+        If ($VolumeSize.Length -gt 0){$7zParameters += "-v$VolumeSize "}
 
         #endregion  Define Generic Parameters
 
@@ -650,12 +650,12 @@ Function Create-Archive {
 
         {$_ -eq "zip" -or $_ -eq "gzip"}{
 
-            If ($null -ne $Passes){
+            If ($Passes.Length -gt 0){
                 If ($ZipMethod -notmatch 'Deflate|Bzip2' -and $ZipMethod.Length -gt 0){throw "-Passes parameter can only be used with -ZipMethod Deflate [default] or Bzip2"}
                 If (($ZipMethod -match 'Deflate' -or $ZipMethod.Length -eq 0) -and ($Passes -gt 15 -or $Passes -lt 1)){throw "-Passes parameter must be between 1 and 15 for Deflate [default]"}
                 If (($ZipMethod -eq 'BZip2') -and ($Passes -gt 10 -or $Passes -lt 1)){throw "-Passes parameter must be between 1 and 10 for -ZipMethod Bzip2"}
 
-            $7zParameters += "-mpass=$Pass "
+            $7zParameters += "-mpass=$Passes "
 
             }
 
@@ -669,11 +669,11 @@ Function Create-Archive {
 
         {$_ -eq "bzip2"}{
 
-            If ($null -ne $Passes){
+            If ($Passes.Length -gt 0){
 
                 If ($Passes -gt 10 -or $Passes -lt 1){throw "-Passes parameter must be between 1 and 10 for Bzip2 compression"}
 
-            $7zParameters += "-mpass=$Pass "
+            $7zParameters += "-mpass=$Passes "
 
             }
 
@@ -717,9 +717,9 @@ Function Create-Archive {
         
             Set-Alias -Name 7z -Value $7zPath
             
-            "Parameters: $7zParameters" > $LogFile
+            #"Parameters: $7zParameters" > $LogFile
 
-            $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 >> $LogFile
+            $RunCommand = invoke-expression "7z $7zParameters -bsp1" | Out-String -Stream 2>&1 > $LogFile
         
             return $RunCommand
     
@@ -783,6 +783,11 @@ Function Create-Archive {
                
            $Done = $False
 
+           #12/18: This is leftover from the Extract Function
+           #Need to:
+                # Either parse the log file to determine "x file, y bytes" / "w folder(s), x files, y bytes"
+                # Or eliminate the logic altogether
+                # See: D:\Powershell Test\marchtest\7ziptest\multitest.log for multi-file example
            $FileCount = $ArchiveContents.Count
            $MoreThanOneFile = [bool]($FileCount -gt 1)
 
