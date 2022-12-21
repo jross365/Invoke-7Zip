@@ -260,7 +260,7 @@ Function Extract-Archive {
         [ValidateScript({Test-Path $_})][Alias('Dest')][string]$Destination,
         [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
         [Alias('KeepLog')][switch]$KeepLogfile,
-        [Alias('Quiet')][switch]$Silent
+        [Alias('Quiet')][switch]$Quiet
         )
     begin {
         #region case-correct and check paths and aliases
@@ -281,7 +281,7 @@ Function Extract-Archive {
 
         #region Define vars and build Params
         
-        $Loud = !($Silent.IsPresent)
+        $Loud = !($Quiet.IsPresent)
 
         $7zParameters = ""
         $7zParameters += " x " + '"' + "$ArchiveFile" + '"' + " -o" + '"' + "$Destination" + '" '
@@ -565,30 +565,31 @@ Function Extract-Archive {
 Function Create-Archive {
     [CmdletBinding()] 
     param( 
-        [ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
-        [Parameter(Mandatory=$False)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
+        [Parameter(Mandatory=$True)][ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
+        [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
+        [switch]$Overwrite,
         [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize, #-v
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][switch]$Zip,
-        [Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$GZip, #-tgzip
-        [Parameter(ParameterSetName='BZip2',Mandatory=$False)][switch]$BZip2,
-        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$7z,
-        [Parameter(ParameterSetName='Xz',Mandatory=$False)][switch]$Xz,
-        [Parameter(ParameterSetName='tar',Mandatory=$False)][switch]$Tar,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod, #mm=Deflate
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='BZip2',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$UseMultithreading,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod, #mem=ZipCrypto
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$PreserveTimestamps,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$UseLocalCodePage,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][switch]$UseUTF8ForNonASCIISymbols,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='BZip2',Mandatory=$False)][int]$Passes,
-        [Parameter(ParameterSetName='Zip',Mandatory=$False)][Parameter(ParameterSetName='GZip',Mandatory=$False)][Parameter(ParameterSetName='7z',Mandatory=$False)][ValidatePattern('[013579]')][int]$CompressionLevel, #-m -mx(1-9)
-        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableSolidMode, #ms=off
-        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableExeCompression, #mf=off
-        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$DisableHeaderCompression, #mhc=off
-        [Parameter(ParameterSetName='7z',Mandatory=$False)][switch]$EncryptHeader, #mhe=on
+        [Parameter(ParameterSetName='Zip')][switch]$Zip,
+        [Parameter(ParameterSetName='GZip')][switch]$GZip, #-tgzip
+        [Parameter(ParameterSetName='BZip2')][switch]$BZip2,
+        [Parameter(ParameterSetName='7z')][switch]$SevenZip,
+        [Parameter(ParameterSetName='Xz')][switch]$Xz,
+        [Parameter(ParameterSetName='tar')][switch]$Tar,
+        [Parameter(ParameterSetName='Zip')][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod, #mm=Deflate
+        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][Parameter(ParameterSetName='7z')][switch]$UseMultithreading,
+        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][Parameter(ParameterSetName='7z')][ValidatePattern('[013579]')][int]$CompressionLevel, #-m -mx(1-9)
+        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod, #mem=ZipCrypto
+        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='7z')][switch]$PreserveTimestamps,
+        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][switch]$UseLocalCodePage,
+        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][switch]$UseUTF8ForNonASCIISymbols,
+        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][int]$Passes,
+        [Parameter(ParameterSetName='7z')][switch]$SolidModeOff, #ms=off
+        [Parameter(ParameterSetName='7z')][switch]$ExeCompressionOff, #mf=off
+        [Parameter(ParameterSetName='7z')][switch]$HeaderCompressionOff, #mhc=off
+        [Parameter(ParameterSetName='7z')][switch]$EncryptHeaderOn, #mhe=on
         [Alias('Pass')][string]$Password, #-p
         [Alias('KeepLog')][switch]$KeepLogfile,
-        [Alias('Quiet')][switch]$Silent
+        [switch]$Quiet
         )
 
         #$7zParameters = 'a "D:\marchtest\Multifiles_test2.bzip2" "D:\multiarchive\2022-06-19 20-44-58.mkv" -mx=5 -tbzip2 -V4G -mmt=12 -y'
@@ -596,7 +597,21 @@ Function Create-Archive {
   
         #region Case-correct and check paths and aliases
         
-        If (Test-Path "$ArchiveFile"){throw "$ArchiveFile exists. Please specify a different filename or delete the existing file first"}
+        If (Test-Path "$ArchiveFile"){
+            
+            Switch ($OverWrite.IsPresent){
+                $True {
+
+                    try {$RemoveFile = Remove-Item $ArchiveFile -ErrorAction Stop}
+                    catch {throw "Unable to remove $ArchiveFile"}
+
+                }
+                $False {throw "$ArchiveFile exists. Please specify a different filename, delete the file, or specify -Overwrite"}
+
+            }
+            
+    
+            }
         
         try {$Source = Get-AbsolutePath $Source}
         catch {throw "$Source is not a valid path"}
@@ -612,7 +627,7 @@ Function Create-Archive {
         $7zPath = $Global:szPath #Exported by Initialize-7Zip
         #endregion Case-correct the File/Directory
         
-        $Loud = !($Silent.IsPresent)
+        $Loud = !($Quiet.IsPresent)
 
         #region Capture Archive Type
         
@@ -621,7 +636,7 @@ Function Create-Archive {
         If ($Zip.IsPresent){$ArchiveType = "zip"}
         ElseIf ($BZip2.IsPresent){$ArchiveType = "bzip2"}
         ElseIf ($GZip.IsPresent){$ArchiveType = "gzip"}
-        ElseIf ($7z.IsPresent){$ArchiveType = "7z"}
+        ElseIf ($SevenZip.IsPresent){$ArchiveType = "7z"}
         ElseIf ($Xz.IsPresent){$ArchiveType = "xz"}
         ElseIf ($Tar.IsPresent){$ArchiveType = "tar"}
         Else {throw "Indeterminable archive type; please specify -<ArchiveType> switch parameter"}
@@ -686,10 +701,10 @@ Function Create-Archive {
         {$_ -eq "7z"}{
 
             If ($PreserveTimestamps.IsPresent){$7zParameters += "-mtc=on "}
-            If ($DisableSolidMode.IsPresent){$7zParameters += "-ms=off "}
-            If ($DisableExeCompression.IsPresent){$7zParameters += "-mf=off "}
-            If ($DisableHeaderCompression.IsPresent){$7zParameters += "-mhc=off "}
-            If ($EncryptHeader.IsPresent){$7zParameters += "-mhe=on "}
+            If ($SolidModeOff.IsPresent){$7zParameters += "-ms=off "}
+            If ($ExeCompressionOff.IsPresent){$7zParameters += "-mf=off "}
+            If ($HeaderCompressionOff.IsPresent){$7zParameters += "-mhc=off "}
+            If ($EncryptHeaderOn.IsPresent){$7zParameters += "-mhe=on "}
         }
         {$_ -eq "xz"}{} #Nothing to do
         {$_ -eq "tar"}{} #Nothing to do
@@ -833,7 +848,7 @@ Function Create-Archive {
 
            #endregion Parse out number of files in archive
 
-           $MoreThanOneFile = [bool]($FileCount -gt 1)
+           $MoreThanOneFile = [bool]($FileCount -gt 1) -or [bool]($SevenZip.IsPresent) #7z logs "#% 1 + FileName" in the output log, for some reason
 
            $JobStatus = Get-Job ($Job.Id)
 
@@ -929,7 +944,12 @@ Function Create-Archive {
     
         &$LogfileCleanup
 
-        If ($Global:Interrupted -eq $True){throw "Operation was interrupted before completion"}
+        If ($Global:Interrupted -eq $True){
+            
+            Remove-Item $ArchiveFile -ErrorAction SilentlyContinue
+            throw "Operation was interrupted before completion"
+        
+            }
 
         If ($Successful -eq $False){throw "Job errored; job found in state $($JobStatus.State) after completion"}
 
