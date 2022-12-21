@@ -252,13 +252,14 @@ Function Get-ArchiveContents {
 
 } #Close Function Get-ArchiveContents
 
-Function Extract-Archive {
+Function Extract-Archive { 
     [CmdletBinding()] 
     param( 
-        [ValidateScript({$_ -le ((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1)})][int]$CPUThreads,
-        [Alias('Pass')][string]$Password,
-        [ValidateScript({Test-Path $_})][Alias('Dest')][string]$Destination,
         [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
+        [Parameter(Mandatory=$True)][ValidateScript({Test-Path $_})][Alias('Dest')][string]$Destination,
+        [Parameter(ParameterSetName='PW')][Alias('Pass')][string]$Password,
+        [Parameter(ParameterSetName='PW')][Alias('SkipCheck')][switch]$SkipPasswordCheck,
+        [Alias('Multithread')][switch]$UseMultithreading,
         [Alias('KeepLog')][switch]$KeepLogfile,
         [Alias('Quiet')][switch]$Quiet
         )
@@ -285,6 +286,14 @@ Function Extract-Archive {
 
         $7zParameters = ""
         $7zParameters += " x " + '"' + "$ArchiveFile" + '"' + " -o" + '"' + "$Destination" + '" '
+        
+        If ($UseMultithreading.IsPresent){
+            
+            try {$7zParameters += "-mmt=$((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1) "}
+            catch {throw "Failed to enumerate number of logical processors - possibly a system permission or WMI service issue"}
+        
+        }
+        
         If ($PSBoundParameters.ContainsKey('CPUThreads')){$7zParameters += "-mmt$CPUThreads "}
         If ($PSBoundParameters.ContainsKey('Password')){$7zParameters += "-p$Password "}
         $7zParameters += "-y"
@@ -369,7 +378,7 @@ Function Extract-Archive {
          If ($EncryptedTags.Count -gt 0 -and ($null -eq $Password -or $Password.Length -eq 0)){throw "Archive is encrypted, but no password was specified"}
 
          #region Test the Password
-        If ($null -ne $Password -and $null -ne $EncryptedTags){ 
+        If (($null -ne $Password) -and ($null -ne $EncryptedTags) -and !($SkipPasswordCheck.IsPresent)){ 
     
             #Find the smallest file to test password against
             $SmallestFile = $ArchiveContents.Where({$_.Encrypted -eq '+'}) | Sort-Object Size | Select-Object -First 1
@@ -592,7 +601,6 @@ Function Create-Archive {
         [switch]$Quiet
         )
 
-        #$7zParameters = 'a "D:\marchtest\Multifiles_test2.bzip2" "D:\multiarchive\2022-06-19 20-44-58.mkv" -mx=5 -tbzip2 -V4G -mmt=12 -y'
     begin {
   
         #region Case-correct and check paths and aliases
@@ -648,12 +656,7 @@ Function Create-Archive {
         $7zParameters = ""
         $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Source" + '" ' + "-t$ArchiveType -r "
 
-        If ($UseMultithreading.IsPresent){
-            
-            try {$7zParameters += "-mmt=$((Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).NumberOfLogicalProcessors -1) "}
-            catch {throw "Failed to enumerate number of logical processors - possibly a system permission or WMI service issue"}
-        
-        }
+z
         
         If ($PSBoundParameters.ContainsKey('Password')){$7zParameters += "-p$Password "}
 
