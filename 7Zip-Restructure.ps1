@@ -459,7 +459,7 @@ Function Extract-Archive {
 
             Do {
 
-                Start-Sleep -Milliseconds 250 #Sleep 1/4 of a second
+                Start-Sleep -Milliseconds 100 #Sleep 1/10 of a second
 
                 $LogLatest = (Get-Content $LogFile -Tail 6).Where({$_ -match '(\d+)%|(\bEverything is Ok\b)'}) | Select-Object -Last 1
 
@@ -813,7 +813,7 @@ z
            $Counter = 0
 
            Do {
-            Start-Sleep -Milliseconds 250 #Sleep 1/4 of a second
+            Start-Sleep -Milliseconds 100 #Sleep 1/10 of a second
 
             try {$LogLatest = (Get-Content $LogFile -ErrorAction Stop).Where({$_ -match $FileInfoRegex}) | Select-Object -first 1}
             catch {} #Do nothing
@@ -872,7 +872,7 @@ z
 
            Do {
 
-               Start-Sleep -Milliseconds 250 #Sleep 1/4 of a second
+               Start-Sleep -Milliseconds 100 #Sleep 1/10 of a second
 
                $LogLatest = (Get-Content $LogFile -Tail 6).Where({$_ -match '(\d+)%|(\bEverything is Ok\b)'}) | Select-Object -Last 1
 
