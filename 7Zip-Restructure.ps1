@@ -606,10 +606,10 @@ Function Create-Archive {
                     catch {throw "Unable to remove $ArchiveFile"}
 
                 }
+
                 $False {throw "$ArchiveFile exists. Please specify a different filename, delete the file, or specify -Overwrite"}
 
             }
-            
     
             }
         
