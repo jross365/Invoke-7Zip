@@ -55,7 +55,7 @@ Function Get-ArchiveContents {
 
     [CmdletBinding()] 
     param( 
-        [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile, #7z [a|e|l|x] C:\path\to\file.7z; Note: e = "extract" (all files to one dir); x = "extract to full paths" (all files with subdirs preserved)
+        [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
         [Parameter(Mandatory=$False)][Alias('TechInfo')][switch]$ShowTechnicalInfo
 
 
@@ -95,7 +95,7 @@ Function Get-ArchiveContents {
     
     Switch ($ArchiveErrors.Count){
     
-    0 {} #Formerly $EncryptedTags =...
+    0 {}
     
     1 {throw $ArchiveErrors}
     
@@ -104,7 +104,7 @@ Function Get-ArchiveContents {
         throw ($ArchiveErrors[0])
     }
 
-    } #Close Switch ArchiveErrors.Count
+    }
     #endregion TechContents Error-catching
     
     switch ($Operation){
@@ -181,7 +181,7 @@ Function Get-ArchiveContents {
 
             $Object | Add-Member -MemberType NoteProperty -Name ($Attr.Name) -Value (($Line[($Attr.Start)..($Attr.End)] -join '').Trim())
 
-            }) #Close BreakTable.ForEach
+            })
 
         $Table.Add($Object) | Out-Null
 
@@ -281,7 +281,6 @@ Function Extract-Archive {
         #endregion case-correct
 
         #region Define vars and build Params
-        
         $Loud = !($Quiet.IsPresent)
 
         $7zParameters = ""
@@ -293,9 +292,9 @@ Function Extract-Archive {
             catch {throw "Failed to enumerate number of logical processors - possibly a system permission or WMI service issue"}
         
         }
-        
-        If ($PSBoundParameters.ContainsKey('CPUThreads')){$7zParameters += "-mmt$CPUThreads "}
+                
         If ($PSBoundParameters.ContainsKey('Password')){$7zParameters += "-p$Password "}
+        
         $7zParameters += "-y"
         
         $Operation = "Extract" 
@@ -380,7 +379,6 @@ Function Extract-Archive {
          #region Test the Password
         If (($null -ne $Password) -and ($null -ne $EncryptedTags) -and !($SkipPasswordCheck.IsPresent)){ 
     
-            #Find the smallest file to test password against
             $SmallestFile = $ArchiveContents.Where({$_.Encrypted -eq '+'}) | Sort-Object Size | Select-Object -First 1
             
             #There seems to be a 7zip bug where -i!\<Path> tests more than the specified file. No idea why, but it's not solvable via Powershell
@@ -577,26 +575,26 @@ Function Create-Archive {
         [Parameter(Mandatory=$True)][ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
         [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
         [switch]$Overwrite,
-        [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize, #-v
+        [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize,
         [Parameter(ParameterSetName='Zip')][switch]$Zip,
-        [Parameter(ParameterSetName='GZip')][switch]$GZip, #-tgzip
+        [Parameter(ParameterSetName='GZip')][switch]$GZip,
         [Parameter(ParameterSetName='BZip2')][switch]$BZip2,
         [Parameter(ParameterSetName='7z')][switch]$SevenZip,
         [Parameter(ParameterSetName='Xz')][switch]$Xz,
         [Parameter(ParameterSetName='tar')][switch]$Tar,
-        [Parameter(ParameterSetName='Zip')][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod, #mm=Deflate
+        [Parameter(ParameterSetName='Zip')][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod,
         [Alias('Multithread')][switch]$UseMultithreading,
-        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][Parameter(ParameterSetName='7z')][ValidatePattern('[013579]')][int]$CompressionLevel, #-m -mx(1-9)
-        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod, #mem=ZipCrypto
+        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][Parameter(ParameterSetName='7z')][ValidatePattern('[013579]')][int]$CompressionLevel,
+        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod,
         [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='7z')][switch]$PreserveTimestamps,
         [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][switch]$UseLocalCodePage,
         [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][switch]$UseUTF8ForNonASCIISymbols,
         [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][int]$Passes,
-        [Parameter(ParameterSetName='7z')][switch]$SolidModeOff, #ms=off
-        [Parameter(ParameterSetName='7z')][switch]$ExeCompressionOff, #mf=off
-        [Parameter(ParameterSetName='7z')][switch]$HeaderCompressionOff, #mhc=off
-        [Parameter(ParameterSetName='7z')][switch]$EncryptHeaderOn, #mhe=on
-        [Alias('Pass')][string]$Password, #-p
+        [Parameter(ParameterSetName='7z')][switch]$SolidModeOff,
+        [Parameter(ParameterSetName='7z')][switch]$ExeCompressionOff,
+        [Parameter(ParameterSetName='7z')][switch]$HeaderCompressionOff,
+        [Parameter(ParameterSetName='7z')][switch]$EncryptHeaderOn,
+        [Alias('Pass')][string]$Password,
         [Alias('KeepLog')][switch]$KeepLogfile,
         [switch]$Quiet
         )
@@ -710,7 +708,9 @@ Function Create-Archive {
         {$_ -eq "xz"}{} #Nothing to do
         {$_ -eq "tar"}{} #Nothing to do
 
-        } 
+        }
+
+        $7zParameters = $7zParameters.TrimEnd() #Remove trailing space
 
         #endregion Define Specific Parameters
 
@@ -794,17 +794,15 @@ Function Create-Archive {
 
                }
 
-           } #Close PreviousJobs.Count
+           }
            #endregion Pre-execution clean-up
 
            #region Heavy lifting
-
            $Job = Start-Job -Name "7zCompress" -ScriptBlock $ScriptBlock -ArgumentList @("$((Get-Location).Path)",$7zPath,$7zParameters,$LogFile)
                
            $Done = $False
           
             #region Parse out number of files in archive
-           
            [regex]$FileInfoRegex = '^((\d)+\s(folder)(s)?,\s)?(\d)+\s(file){1}(s)?\,\s(\d)+\s(bytes)\s\((\d)+\s[KMGTP]iB\)$'
 
            $FileCountParsed = $False
@@ -849,7 +847,7 @@ Function Create-Archive {
 
            #endregion Parse out number of files in archive
 
-           $MoreThanOneFile = [bool]($FileCount -gt 1) -or [bool]($SevenZip.IsPresent) #7z logs "#% 1 + FileName" in the output log, for some reason
+           $MoreThanOneFile = [bool]($FileCount -gt 1) -or [bool]($SevenZip.IsPresent) #7z format logs "#% 1 + FileName" in the output log, for some reason
 
            $JobStatus = Get-Job ($Job.Id)
 
@@ -913,7 +911,7 @@ Function Create-Archive {
                    &$InterceptEscapeKey
                }
 
-           } #Close Do
+           }
            Until ($Done -eq $True -or $Global:Interrupted -eq $True)
 
            If ($Loud){
@@ -934,11 +932,12 @@ Function Create-Archive {
 
            {$_ -eq "Failed"}{&$LogfileCleanup; $JobError = $JobStatus.Error; Remove-Job ($Job.Id); $Successful = $False}
 
-           } #Close Switch Get-Job (ID) State
+           }
 
            #endregion Heavy lifting
            
    } #end process
+   
     end {
 
         If ($KeepLogfile.IsPresent -and $Loud){Write-Verbose "Logfile is $LogFile" -Verbose}
