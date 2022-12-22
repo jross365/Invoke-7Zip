@@ -1,14 +1,14 @@
 
 Function Initialize-7zip ($szPath){
 
-    If ($7zPath.Length -gt 0 -and $null -ne $7zPath){
+    If ($SzPath.Length -gt 0 -and $null -ne $SzPath){
     
-        try {$PathTest = Test-Path $7zPath -ErrorAction Stop; $7zPathExists = $True}
+        try {$PathTest = Test-Path $SzPath -ErrorAction Stop; $7zPathExists = $True}
         catch {$7zPathExists = $False}
 
     }
 
-    If (!($7zPathExists) -or ($7zPath.Length -eq 0 -and $null -eq $7zPath)){
+    If (!($7zPathExists) -or ($SzPath.Length -eq 0 -or $null -eq $S7zPath)){
 
         switch (Test-Path .\7-Zip\7z.exe){
     
@@ -16,25 +16,25 @@ Function Initialize-7zip ($szPath){
         
                     try {
                         
-                        $7zPath = (Get-ItemProperty "HKCU:\SOFTWARE\7-Zip" -ErrorAction Stop).Path + '7z.exe'
+                        $SzPath = (Get-ItemProperty "HKCU:\SOFTWARE\7-Zip" -ErrorAction Stop).Path + '7z.exe'
         
-                        try {$PathTest = Test-Path $7zPath -ErrorAction Stop}
-                        catch {throw "Registry entry for 7-Zip exists but path $7zPath is not found"}
+                        try {$PathTest = Test-Path $SzPath -ErrorAction Stop}
+                        catch {throw "Registry entry for 7-Zip exists but path $SzPath is not found"}
         
                     } #Close try
                     catch {throw "7z not installed on this computer and is not in a local directory"}
         
                   } #Close False
         
-            $True {$7zPath = (Get-Location).Path + "7-Zip\7z.exe"}
+            $True {$szPath = (Get-Location).Path + "7-Zip\7z.exe"}
         
         } #Close Switch
 
     }
     
-    Set-Alias -Scope Global -Name 7z -Value $7zPath
+    Set-Alias -Scope Global -Name 7z -Value $SzPath
     
-    $Global:szPath = $7zPath
+    $Global:szPath = $SzPath
 
 }
 
