@@ -261,7 +261,7 @@ Function Extract-Archive {
         [Parameter(ParameterSetName='PW')][Alias('SkipCheck')][switch]$SkipPasswordCheck,
         [Alias('Multithread')][switch]$UseMultithreading,
         [Alias('KeepLog')][switch]$KeepLogfile,
-        [Alias('Quiet')][switch]$Quiet
+        [switch]$Quiet
         )
     begin {
         #region case-correct and check paths and aliases
@@ -585,7 +585,7 @@ Function Create-Archive {
         [Parameter(ParameterSetName='Xz')][switch]$Xz,
         [Parameter(ParameterSetName='tar')][switch]$Tar,
         [Parameter(ParameterSetName='Zip')][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod, #mm=Deflate
-        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][Parameter(ParameterSetName='7z')][switch]$UseMultithreading,
+        [Alias('Multithread')][switch]$UseMultithreading,
         [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][Parameter(ParameterSetName='7z')][ValidatePattern('[013579]')][int]$CompressionLevel, #-m -mx(1-9)
         [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod, #mem=ZipCrypto
         [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='7z')][switch]$PreserveTimestamps,
@@ -654,10 +654,8 @@ Function Create-Archive {
         #region Define Generic/Broad Parameters
 
         $7zParameters = ""
-        $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Source" + '" ' + "-t$ArchiveType -r "
+        $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Source" + '" ' + "-t$ArchiveType "
 
-z
-        
         If ($PSBoundParameters.ContainsKey('Password')){$7zParameters += "-p$Password "}
 
         If ($PSBoundParameters.ContainsKey('CompressionLevel')){$7zParameters += "-mx$CompressionLevel "}
