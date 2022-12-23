@@ -274,10 +274,12 @@ Function Test-Archive {
             Catch {throw "Unable to initialize 7zip alias"}
         }
 
+        If ($Password.Length -eq 0){$Password = $null} #Odd Powershell 5 behavior where not specifying "-Password" causes later throw to hang
+        
         $7zParameters = ""
         $7zParameters += " t " + '"' + "$ArchiveFile" + '" '
-
-        If ($PSBoundParameters.ContainsKey("Password")){$7zParameters += "-p" + '"' + "$Password" + '" '}
+        $7zParameters += "-p" + '"' + "$Password" + '" '
+        #If ($PSBoundParameters.ContainsKey("Password")){$7zParameters += "-p" + '"' + "$Password" + '" '}
         If ($PSBoundParameters.ContainsKey("SpecificPathOrPattern")){$7zParameters += "-i!\$SpecificPathOrPattern "}
 
         #$7zParameters += '-bso0 -bd 2>&1'
@@ -304,13 +306,21 @@ Function Test-Archive {
 
             $false {
 
-                If ($ArchiveTest.Count -gt 0){throw $ArchiveTest}
+                If ($ArchiveTest.Count -gt 0){
+                    
+                    $WrongPasswordCount = $ArchiveTest.Where({$_ -match "Wrong password"}).Count
+                    
+                    If ($WrongPasswordCount -gt 0){throw "Wrong password for $WrongPasswordCount files"}
+                    
+                    Else {throw $ArchiveTest}
+
+                    }
+                
+                }
             
                 }
 
             }
-
-        }
 
 } #Close Function
 
