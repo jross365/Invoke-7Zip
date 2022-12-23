@@ -1,14 +1,14 @@
 
 Function Initialize-7zip ($szPath){
 
-    If ($SzPath.Length -gt 0 -and $null -ne $SzPath){
+    If ($szPath.Length -gt 0 -and $null -ne $SzPath){
     
-        try {$PathTest = Test-Path $SzPath -ErrorAction Stop; $7zPathExists = $True}
+        try {$PathTest = Test-Path $szPath -ErrorAction Stop; $7zPathExists = $True}
         catch {$7zPathExists = $False}
 
     }
 
-    If (!($7zPathExists) -or ($SzPath.Length -eq 0 -or $null -eq $S7zPath)){
+    If (!($7zPathExists) -or ($szPath.Length -eq 0 -or $null -eq $S7zPath)){
 
         switch (Test-Path .\7-Zip\7z.exe){
     
@@ -18,8 +18,8 @@ Function Initialize-7zip ($szPath){
                         
                         $SzPath = (Get-ItemProperty "HKCU:\SOFTWARE\7-Zip" -ErrorAction Stop).Path + '7z.exe'
         
-                        try {$PathTest = Test-Path $SzPath -ErrorAction Stop}
-                        catch {throw "Registry entry for 7-Zip exists but path $SzPath is not found"}
+                        try {$PathTest = Test-Path $szPath -ErrorAction Stop}
+                        catch {throw "Registry entry for 7-Zip exists but path $szPath is not found"}
         
                     } #Close try
                     catch {throw "7z not installed on this computer and is not in a local directory"}
@@ -32,9 +32,9 @@ Function Initialize-7zip ($szPath){
 
     }
     
-    Set-Alias -Scope Global -Name 7z -Value $SzPath
+    Set-Alias -Scope Global -Name 7z -Value $szPath
     
-    $Global:szPath = $SzPath
+    $Global:szPath = $szPath
 
 }
 
@@ -251,6 +251,68 @@ Function Get-ArchiveContents {
     }
 
 } #Close Function Get-ArchiveContents
+
+    #            $PasswordTest = 7z t $ArchiveFile -p"$Password" -i!\$($SmallestFile.Path) -bso0 -bd 2>&1
+                    
+    #       If ($PasswordTest.Count -gt 0){$TestErrors = $PasswordTest.Where({$_.Exception.Message.Length -gt 0}).Exception.Message}
+
+Function Test-Archive {
+    param( 
+        [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
+        [Alias('Include')][string]$SpecificPathOrPattern,
+        [Alias('Pass')][string]$Password,
+        [switch]$ReturnBoolean
+
+        )
+    begin {
+        try {$ArchiveFile = Get-AbsolutePath $ArchiveFile}
+        catch {throw "$ArchiveFile is not a valid path"}
+
+        If ((Get-Alias 7z -ErrorAction SilentlyContinue).Count -eq 0){
+        
+            Try {Initialize-7zip -ErrorAction Stop}
+            Catch {throw "Unable to initialize 7zip alias"}
+        }
+
+        $7zParameters = ""
+        $7zParameters += " t " + '"' + "$ArchiveFile" + '" '
+
+        If ($PSBoundParameters.ContainsKey("Password")){$7zParameters += "-p" + '"' + "$Password" + '" '}
+        If ($PSBoundParameters.ContainsKey("SpecificPathOrPattern")){$7zParameters += "-i!\$SpecificPathOrPattern "}
+
+        #$7zParameters += '-bso0 -bd 2>&1'
+        $7zParameters = $7zParameters.TrimEnd()
+
+    }
+
+    process {
+
+        $ArchiveTest = Invoke-Expression "7z $7zParameters -bse1 -bso0 -bd" 2>&1
+
+    }
+
+    end {
+
+        Switch ($ReturnBoolean.IsPresent){
+
+            $true {
+
+                If ($ArchiveTest.Count -eq 0){return $True}
+                Else {return $False}
+
+            }
+
+            $false {
+
+                If ($ArchiveTest.Count -gt 0){throw $ArchiveTest}
+            
+                }
+
+            }
+
+        }
+
+} #Close Function
 
 Function Extract-Archive { 
     [CmdletBinding()] 
