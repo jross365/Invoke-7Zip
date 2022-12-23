@@ -282,7 +282,7 @@ Function Test-Archive {
 
         $EncryptedTags = $ArchiveContents.Where({$_.Encrypted -eq "+"}) | Sort-Object -Unique
 
-        If ($EncryptedTags.Count -gt 0 -and ($null -eq $Password -or $Password.Length -eq 0)){throw "Archive is encrypted, but no password was specified"}
+        If ($EncryptedTags.Count -gt 0 -and $Password.Length -eq 0){throw "Archive is password-protected, but no password was specified"}
         #endregion Evaluate whether archive is password protected
 
         If ($Password.Length -eq 0){$Password = $null} #Odd Powershell 5 behavior where not specifying "-Password" causes later throw to hang
