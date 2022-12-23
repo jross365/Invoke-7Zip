@@ -265,6 +265,7 @@ Function Test-Archive {
 
         )
     begin {
+        #region Initialize variables
         try {$ArchiveFile = Get-AbsolutePath $ArchiveFile}
         catch {throw "$ArchiveFile is not a valid path"}
 
@@ -273,6 +274,16 @@ Function Test-Archive {
             Try {Initialize-7zip -ErrorAction Stop}
             Catch {throw "Unable to initialize 7zip alias"}
         }
+        #endregion Initialize variables
+
+        #region Evaluate whether archive is password protected
+        try {$ArchiveContents = Get-ArchiveContents -ArchiveFile $ArchiveFile -ShowTechnicalInfo}
+        catch {throw "Errors encountered when enumerating contents of $ArchiveContents"}
+
+        $EncryptedTags = $ArchiveContents.Where({$_.Encrypted -eq "+"}) | Sort-Object -Unique
+
+        If ($EncryptedTags.Count -gt 0 -and ($null -eq $Password -or $Password.Length -eq 0)){throw "Archive is encrypted, but no password was specified"}
+        #endregion Evaluate whether archive is password protected
 
         If ($Password.Length -eq 0){$Password = $null} #Odd Powershell 5 behavior where not specifying "-Password" causes later throw to hang
         
