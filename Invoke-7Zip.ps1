@@ -261,7 +261,7 @@ Function Test-Archive {
         [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
         [Alias('Include')][string]$SpecificPathOrPattern,
         [Alias('Pass')][string]$Password,
-        [switch]$ReturnBoolean
+        [switch]$Quiet
 
         )
     begin {
@@ -277,15 +277,29 @@ Function Test-Archive {
         #endregion Initialize variables
 
         #region Evaluate whether archive is password protected
+        If ($Password.Length -eq 0){
         try {$ArchiveContents = Get-ArchiveContents -ArchiveFile $ArchiveFile -ShowTechnicalInfo}
-        catch {throw "Errors encountered when enumerating contents of $ArchiveContents"}
+        catch {
+            
+            If ($Quiet.IsPresent){$SkipProcessBlockAndReturnFalse = $True}
+            Else {throw "Errors encountered when enumerating contents of $ArchiveContents"}        
+            
+        }
 
         $EncryptedTags = $ArchiveContents.Where({$_.Encrypted -eq "+"}) | Sort-Object -Unique
 
-        If ($EncryptedTags.Count -gt 0 -and $Password.Length -eq 0){throw "Archive is password-protected, but no password was specified"}
+        If ($EncryptedTags.Count -gt 0 -and $Password.Length -eq 0){
+            
+            If ($Quiet.IsPresent){$SkipProcessBlockAndReturnFalse = $True}
+            Else {throw "Archive is password-protected, but no password was specified"}
+        
+            }
+        
+        } #Cl
         #endregion Evaluate whether archive is password protected
-
-        If ($Password.Length -eq 0){$Password = $null} #Odd Powershell 5 behavior where not specifying "-Password" causes later throw to hang
+        
+        #For odd Powershell 5 behavior where not specifying "-Password" causes later throw to hang:
+        $Password = $null   
         
         $7zParameters = ""
         $7zParameters += " t " + '"' + "$ArchiveFile" + '" '
@@ -296,21 +310,21 @@ Function Test-Archive {
         #$7zParameters += '-bso0 -bd 2>&1'
         $7zParameters = $7zParameters.TrimEnd()
 
-    }
+    } #Close Begin
 
     process {
 
-        $ArchiveTest = Invoke-Expression "7z $7zParameters -bse1 -bso0 -bd" 2>&1
+        If (!($SkipProcessBlockAndReturnFalse)){$ArchiveTest = Invoke-Expression "7z $7zParameters -bse1 -bso0 -bd" 2>&1}
 
     }
 
     end {
 
-        Switch ($ReturnBoolean.IsPresent){
+        Switch ($Quiet.IsPresent){
 
             $true {
 
-                If ($ArchiveTest.Count -eq 0){return $True}
+                If ($ArchiveTest.Count -eq 0 -and !($SkipProcessBlockAndReturnFalse)){return $True}
                 Else {return $False}
 
             }
@@ -333,7 +347,7 @@ Function Test-Archive {
 
             }
 
-} #Close Function
+} #Close Function Test-Archive
 
 Function Extract-Archive { 
     [CmdletBinding()] 
