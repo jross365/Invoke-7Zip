@@ -642,12 +642,157 @@ Function Extract-Archive {
 
 } #Close Function Extract-Archive
 
+<#
+.SYNOPSIS
+Creates an archive.
+
+.DESCRIPTION
+Creates an archive from a specified file or folder.
+
+For details about options and their corresponding parameters, please see https://sevenzip.osdn.jp/chm/cmdline/switches/method.htm.
+
+.PARAMETER Source
+The path of the file or folder to be added to an archive.
+
+Path may be explicit or relative.
+
+.PARAMETER ArchiveFile
+The name of the destination archive file.
+
+Path may be explicit or relative.
+
+.PARAMETER Password
+Used with all archive formats. (May not apply to all archive formats.)
+
+If specified, password-protects the archive contents.
+
+.PARAMETER Overwrite
+If specified and an archive file of the same name already exists, deletes the existing destination archive file.
+
+.PARAMETER VolumeSize
+If specified, breaks up the destination archive into volumes of the specified size.
+
+Format must be an integer followed by "K" (kilobytes), "M" (megabytes) or "G" (gigabytes).
+
+.PARAMETER Zip
+If specified, destination archive will be ZIP format.
+
+.PARAMETER GZip
+If specified, destination archive will be GZIP format.
+
+.PARAMETER BZip2
+If specified, destination archive will be BZIP2 format.
+
+.PARAMETER SevenZip
+If specified, destination archive will be 7Z format.
+
+.PARAMETER Xz
+If specified, destination archive will be XZ format.
+
+.PARAMETER Tar
+If specified, destination archive will be TAR format.
+
+.PARAMETER ZipMethod
+Used with -Zip. 
+
+If specified, sets the ZIP method. Possible values are Copy, Deflate, Deflate64, BZip2, LZMA.
+
+If not specified, default is Deflate.
+
+.PARAMETER UseMultithreading
+If specified, 7z will attempt to enforce multithreading (not supported by all formats.)
+
+Number of threads will always be the total cores on the system, minus 1.
+
+.PARAMETER CompressionLevel
+Used with -Zip, -GZip, -BZip2 and -SevenZip. 
+
+If specified, sets the compression level. Possible values are odd numbers between 0 and 9.
+
+If not specified, default is typically 5 (depending on the compression algorithm).
+
+.PARAMETER EncryptionMethod
+Used with -Zip and -GZip. 
+
+If specified, sets the encryption level. Possible values are ZipCrypto, AES128, AES192 and AES256.
+
+If not specified, default is ZipCrypto.
+
+.PARAMETER PreserveTimestamps
+Used with -Zip, -GZip and -SevenZip. 
+
+If specified, retains Create, Access and Modify timestamps for archived files (where applicable).
+
+.PARAMETER UseLocalCodePage
+Used with -Zip and -GZip. 
+
+If specified, preserves the system's locale specifics (region and character information).
+
+.PARAMETER UseUTF8ForNonASCIISymbols
+Used with -Zip and -GZip. 
+
+If specified, Non-ASCII symbols (in filenames) will be assigned UTF-8 equivalents.
+
+.PARAMETER Passes
+Used with -Zip, -GZip and -BZip2. 
+
+If specified, will attempt to recompress data the designated number of times.
+
+May or may not correspond or conflict with the -CompressionLevel parameter.
+
+-Zip and -GZip accept a range between 1 and 10; -BZip2 accepts a range between 1 and 15.
+
+.PARAMETER SolidModeOff
+Used with -SevenZip. 
+
+If specified, Solid Mode is disabled.
+
+.PARAMETER ExeCompressionOff
+Used with -SevenZip. 
+
+If specified, will not attempt to compress executable files.
+
+.PARAMETER HeaderCompressionOff
+Used with -SevenZip. 
+
+If specified, will not compress the archive header (file and archive information).
+
+.PARAMETER EncryptHeaderOn
+Used with -SevenZip. 
+
+If specified, will encrypt header along with contents.
+
+.PARAMETER KeepLogfile
+If specified, will preserve the 7-Zip logfile used for parsing and reporting progress.
+
+This parameter is useful for troubleshooting, and provides the 7zip console output.
+
+.PARAMETER Quiet
+If specified, suppresses progress bar and corresponding verbose outputs (success, failure, errors).
+
+.INPUTS
+None. You cannot pipe objects to Create-Archive.
+
+.OUTPUTS
+Default: Progress bar, verbose outputs, standard errors.
+
+-Quiet: Boolean ($True for success, $False for failed)
+
+.EXAMPLE
+
+.EXAMPLE
+
+.LINK
+GitHub: https://github.com/jross365/Invoke-7Zip
+
+#>
 Function Create-Archive {
     [CmdletBinding()] 
     param( 
         [Parameter(Mandatory=$True)][ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
         [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
-        [switch]$Overwrite,
+        [Alias('Pass')][string]$Password,
+        [switch]$Overwrite, #Need to make this safer
         [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize,
         [Parameter(ParameterSetName='Zip')][switch]$Zip,
         [Parameter(ParameterSetName='GZip')][switch]$GZip,
@@ -662,14 +807,13 @@ Function Create-Archive {
         [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='7z')][switch]$PreserveTimestamps,
         [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][switch]$UseLocalCodePage,
         [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][switch]$UseUTF8ForNonASCIISymbols,
-        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][int]$Passes,
+        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][int]$Passes, #Need to validate 1-10 (ZIP/GZIP & Deflate) and 1-15 (BZIP)
         [Parameter(ParameterSetName='7z')][switch]$SolidModeOff,
         [Parameter(ParameterSetName='7z')][switch]$ExeCompressionOff,
         [Parameter(ParameterSetName='7z')][switch]$HeaderCompressionOff,
         [Parameter(ParameterSetName='7z')][switch]$EncryptHeaderOn,
-        [Alias('Pass')][string]$Password,
         [Alias('KeepLog')][switch]$KeepLogfile,
-        [switch]$Quiet
+        [switch]$Quiet #Need to write Success ($True) and Failed ($False) boolean returns for this parameter (in end{} block?)
         )
 
     begin {
