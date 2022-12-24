@@ -1045,9 +1045,9 @@ Export-ModuleMember -Function Test-Archive
 Export-ModuleMember -Function Extract-Archive
 Export-ModuleMember -Function Create-Archive
 
-Export-ModuleMember -Name i7z
-Export-ModuleMember -Name gap
-Export-ModuleMember -Name gac
-Export-ModuleMember -Name tarch
-Export-ModuleMember -Name earch
-Export-ModuleMember -Name carch
+Export-ModuleMember -Alias i7z
+Export-ModuleMember -Alias gap
+Export-ModuleMember -Alias gac
+Export-ModuleMember -Alias tarch
+Export-ModuleMember -Alias earch
+Export-ModuleMember -Alias carch
