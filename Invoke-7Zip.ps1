@@ -478,34 +478,9 @@ Function Extract-Archive {
     
             $SmallestFile = $ArchiveContents.Where({$_.Encrypted -eq '+'}) | Sort-Object Size | Select-Object -First 1
             
-            #There seems to be a 7zip bug where -i!\<Path> tests more than the specified file. No idea why, but it's not solvable via Powershell
-            $PasswordTest = 7z t $ArchiveFile -p"$Password" -i!\$($SmallestFile.Path) -bso0 -bd 2>&1
-                    
-            If ($PasswordTest.Count -gt 0){$TestErrors = $PasswordTest.Where({$_.Exception.Message.Length -gt 0}).Exception.Message}
-        
-            Switch ($TestErrors.Count){
-        
-                0 {} #Do nothing
-        
-                1 {
-                    &$LogfileCleanup
-                    throw $TestErrors
-                }
-        
-                {$_ -gt 1}{
-                    &$LogfileCleanup
-                    $TestErrors.ForEach{(Write-Error -Message "$_" -ErrorAction Continue)}
-                    throw ($TestErrors[0])
-                }
-        
-                Default {
-                    &$LogfileCleanup
-                    throw "No idea what happened"
-                }
-        
-                }
-        
-            }
+            try {$PasswordTest = Test-Archive -ArchiveFile $ArchiveFile -SpecificPathOrPattern $($SmallestFile.Path) -Password $Password}
+            catch {throw $Error[0].Exception.Message}
+           
             #endregion Test the Password
 
             #region Pre-execution clean-up
@@ -602,7 +577,7 @@ Function Extract-Archive {
                         $LogLatest = Get-Content $LogFile
                         $VolLine = $LogLatest.IndexOf($LogLatest.Where({$_ -match "Volumes ="}))
                         
-                        If ($VolLine -gt 0){ #Covers '0' (returned $false in [bool]), and '-1' (returned "none" as [int])
+                        If ($VolLine -gt 1){ #Covers '0' (returned $false in [bool]), and '-1' (returned "none" as [int]), and '1' (not sure why 1 comes back sometimes)
                             
                             $ArchiveFilesCount = ($LogLatest[$VolLine] -split '=')[1].Trim()
 
