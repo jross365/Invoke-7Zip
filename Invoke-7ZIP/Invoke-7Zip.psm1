@@ -1029,3 +1029,25 @@ Function Create-Archive {
     }
 
 } #Close Function Extract-Archive
+
+#region Module Instructions
+New-Alias -Name i7z -Value Initialize-7zip
+New-Alias -Name gap -Value Get-AbsolutePath
+New-Alias -Name gac -Value Get-ArchiveContents
+New-Alias -Name tarch -Value Test-Archive
+New-Alias -Name earch -Value Extract-Archive
+New-Alias -Name carch -Value Create-Archive
+
+Export-ModuleMember -Function Initialize-7zip
+Export-ModuleMember -Function Get-AbsolutePath
+Export-ModuleMember -Function Get-ArchiveContents
+Export-ModuleMember -Function Test-Archive
+Export-ModuleMember -Function Extract-Archive
+Export-ModuleMember -Function Create-Archive
+
+Export-ModuleMember -Name i7z
+Export-ModuleMember -Name gap
+Export-ModuleMember -Name gac
+Export-ModuleMember -Name tarch
+Export-ModuleMember -Name earch
+Export-ModuleMember -Name carch
