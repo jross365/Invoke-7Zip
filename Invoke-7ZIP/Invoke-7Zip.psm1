@@ -252,10 +252,6 @@ Function Get-ArchiveContents {
 
 } #Close Function Get-ArchiveContents
 
-    #            $PasswordTest = 7z t $ArchiveFile -p"$Password" -i!\$($SmallestFile.Path) -bso0 -bd 2>&1
-                    
-    #       If ($PasswordTest.Count -gt 0){$TestErrors = $PasswordTest.Where({$_.Exception.Message.Length -gt 0}).Exception.Message}
-
 Function Test-Archive {
     param( 
         [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
@@ -349,6 +345,58 @@ Function Test-Archive {
 
 } #Close Function Test-Archive
 
+<#
+.SYNOPSIS
+Extracts an archive.
+
+.DESCRIPTION
+Extracts an archive to a specified directory.
+
+.PARAMETER ArchiveFile
+The name of the source archive file.
+
+Path may be explicit or relative.
+
+.PARAMETER Destination
+The path the archive contents are to be extracted to.
+
+Path may be explicit or relative.
+
+.PARAMETER Password
+The password for decrypting and extracting the contents of the archive.
+
+.PARAMETER SkipPasswordCheck
+If specified, will skip password validation before attemptingd to extract the archive.
+
+.PARAMETER UseMultithreading
+If specified, 7z will attempt to enforce multithreading (not supported by all formats.)
+
+Number of threads will always be the total cores on the system, minus 1.
+
+.PARAMETER KeepLogfile
+If specified, will preserve the 7-Zip logfile used for parsing and reporting progress.
+
+This parameter is useful for troubleshooting, and provides the 7zip console output.
+
+.PARAMETER Quiet
+If specified, suppresses progress bar and corresponding verbose outputs (success, failure, errors).
+
+.INPUTS
+None. You cannot pipe objects to Extract-Archive.
+
+.OUTPUTS
+Default: Progress bar, verbose outputs, standard errors.
+
+-Quiet: Boolean ($True for success, $False for failed)
+
+.EXAMPLE
+
+.EXAMPLE
+
+.LINK
+GitHub: https://github.com/jross365/Invoke-7Zip
+
+#>
 Function Extract-Archive { 
     [CmdletBinding()] 
     param( 
