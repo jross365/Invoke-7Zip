@@ -481,6 +481,7 @@ Function Extract-Archive {
             try {$PasswordTest = Test-Archive -ArchiveFile $ArchiveFile -SpecificPathOrPattern $($SmallestFile.Path) -Password $Password}
             catch {throw $Error[0].Exception.Message}
            
+        }
             #endregion Test the Password
 
             #region Pre-execution clean-up
