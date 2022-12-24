@@ -779,8 +779,14 @@ Default: Progress bar, verbose outputs, standard errors.
 -Quiet: Boolean ($True for success, $False for failed)
 
 .EXAMPLE
+Create-Archive -Source D:\Games\DeityOfConflict -ArchiveFile Z:\GameBackups\DoC-Backup.7z -VolumeSize 4G -SevenZip -CompressionLevel 9
+
+Creates an 7Z archive from the "DeityOfConflict" directory called "DoC-Backup.7z". Archive is split into 4GB volumes, using the maximum compression level.
 
 .EXAMPLE
+Create-Archive -Source .\ResumeV9-Updated.docx -ArchiveFile SecretResume.zip -Password supersecret -Zip -EncryptionMethod AES256 -Quiet
+
+Creates a password-protected, AES-256 encrypted ZIP file from "ResumeV9-Updated.docx" using the provided password. interactive console is suppressed (-Quiet)
 
 .LINK
 GitHub: https://github.com/jross365/Invoke-7Zip
@@ -794,7 +800,7 @@ Function Create-Archive {
         [Alias('Pass')][string]$Password,
         [switch]$Overwrite, #Need to make this safer
         [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize,
-        [Parameter(ParameterSetName='Zip')][switch]$Zip,
+        [Parameter(ParameterSetName='Zip')][switch]$Zip, #Need to enumerate the desired file type from the -ArchiveFile extension
         [Parameter(ParameterSetName='GZip')][switch]$GZip,
         [Parameter(ParameterSetName='BZip2')][switch]$BZip2,
         [Parameter(ParameterSetName='7z')][switch]$SevenZip,
