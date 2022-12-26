@@ -1,4 +1,3 @@
-
 <#
 .SYNOPSIS
 Resolves the location of 7Zip.
