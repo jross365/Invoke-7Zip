@@ -1,4 +1,21 @@
 
+<#
+.SYNOPSIS
+Resolves the location of 7Zip.
+
+.DESCRIPTION
+Attempts to identify and store the path of 7z.exe, and stores it as a global variable for use within the Invoke-7Zip module
+
+.PARAMETER szPath
+If specified, will use the provided path as the location of the 7Zip executable.
+
+.EXAMPLE
+Initialize-7zip
+
+.LINK
+GitHub: https://github.com/jross365/Invoke-7Zip
+
+#>
 Function Initialize-7zip ($szPath){
 
     If ($szPath.Length -gt 0 -and $null -ne $SzPath){
@@ -38,6 +55,25 @@ Function Initialize-7zip ($szPath){
 
 }
 
+<#
+.SYNOPSIS
+Returns the absolute path of a file or folder.
+
+.DESCRIPTION
+Provides the case-correct path of a file or folder.
+
+.PARAMETER Path
+The path of the source file or folder.
+
+.EXAMPLE
+Get-AbsolutePath -Path "c:\program files\7zip\7z.exe"
+
+C:\Program Files\7Zip\7z.exe
+
+.LINK
+GitHub: https://github.com/jross365/Invoke-7Zip
+
+#>
 Function Get-AbsolutePath ($Path){
     
     $FileSystemObject = New-Object -ComObject Scripting.FileSystemObject
@@ -51,6 +87,33 @@ Function Get-AbsolutePath ($Path){
 
 } #Close Function Get-AbsolutePath
 
+<#
+.SYNOPSIS
+Returns the contents of an archive.
+
+.DESCRIPTION
+Provides information about the files of a specified archive.
+Returns an [arraylist] of objects.
+
+.PARAMETER ArchiveFile
+The name of the source archive file.
+
+Path may be explicit or relative.
+
+.PARAMETER ShowTechnicalInfo
+If specified, lists the technical info of the files in an archive (equivalent to 7z l -slt).
+
+.EXAMPLE
+$ArchiveFiles = Get-ArchiveContents -ArchiveFile DoC.bz2
+
+.EXAMPLE
+$DetailedFileInfo = Get-ArchiveContents -ArchiveFile DoC.bz2 -ShowTechnicalInfo
+
+
+.LINK
+GitHub: https://github.com/jross365/Invoke-7Zip
+
+#>
 Function Get-ArchiveContents {
 
     [CmdletBinding()] 
@@ -390,8 +453,15 @@ Default: Progress bar, verbose outputs, standard errors.
 -Quiet: Boolean ($True for success, $False for failed)
 
 .EXAMPLE
+Extract-Archive -ArchiveFile D:\Resumes\Doc-Backup.7z -Destination C:\Users\User1\Desktop -Password supersecret -UseMultithreading
+
+Extracts contents of "Doc-Backup.7z" to the user's Desktop, using the specfied password.
 
 .EXAMPLE
+Extract-Archive -ArchiveFile D:\DeityOfConflict.bz2 -Destination D:\Games\DeityOfConflict -UseMultithreading -Quiet
+
+Extracts contents of "DeityOfConflict.bz2" to the "DeityOfConflict" folder. Console output is suppressed.
+
 
 .LINK
 GitHub: https://github.com/jross365/Invoke-7Zip
