@@ -11,7 +11,7 @@ This module provides Powershell functionality for 7-Zip's essential features:
 * **Archive** files and folders as ZIP, GZIP, BZIP2, 7Z, XZ or TAR 
 * **Extract** the contents of any archive supported by 7-Zip
 
-![Example of Photo management](/.github/images/photosexample.png)
+![Example of 7z Archive Creation](/.github/images/compressionexample.png)
 
 
 ## Getting Started
