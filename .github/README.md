@@ -1,18 +1,27 @@
 # Invoke-7Zip (**I7Z**)
 
-Invoke-7Zip is a Powershell wrapper module for 7-Zip.
+Invoke-7Zip is a comprehensive Powershell wrapper module for 7-Zip.
 
 ## Description
 
-This module provides Powershell functionality for 7-Zip's essential features:
-
-* **List** the contents of archives (Standard and "Show Technical Information" views)
-* **Test** archives for integrity and password accuracy
-* **Archive** files and folders as ZIP, GZIP, BZIP2, 7Z, XZ or TAR 
-* **Extract** the contents of any archive supported by 7-Zip
+This module extends Powershell functionality to 7-Zip, while providing script and user-friendly capabilities and features.
 
 ![Example of 7z Archive Creation](/.github/images/compressionexample.png)
 
+### Capabilities
+
+* **List** the contents of archives
+* **Test** archives for integrity or password accuracy
+* **Archive** files and folders as ZIP, GZIP, BZIP2, 7Z, XZ or TAR 
+* **Extract** the contents of any archive supported by 7-Zip
+
+### Features
+
+* **Progress Bar** provides a visual and textual indicator of archive and extract progress
+* **Quiet Mode** for script-friendly message suppression of Archive/Extract operations
+* **Input Validation** of parameters to quickly and easily identify issues and incompatibilities
+* **Output Log Preservation** For retention of console output during Archive/Extract operations
+* **Graceful Interruption** during execution to automatically clean up artifact files after a cancelled run
 
 ## Getting Started
 
