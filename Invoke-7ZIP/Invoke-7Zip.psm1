@@ -915,7 +915,7 @@ Function Create-Archive {
         [Parameter(Mandatory=$True)][ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
         [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
         [Alias('Pass')][string]$Password,
-        [switch]$Overwrite, #Need to make this safer
+        [switch]$Overwrite,
         [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize,
         [Parameter(ParameterSetName='Zip')][switch]$Zip, #Need to enumerate the desired file type from the -ArchiveFile extension
         [Parameter(ParameterSetName='GZip')][switch]$GZip,
@@ -936,7 +936,7 @@ Function Create-Archive {
         [Parameter(ParameterSetName='7z')][switch]$HeaderCompressionOff,
         [Parameter(ParameterSetName='7z')][switch]$EncryptHeaderOn,
         [Alias('KeepLog')][switch]$KeepLogfile,
-        [switch]$Quiet #Need to write Success ($True) and Failed ($False) boolean returns for this parameter (in end{} block?)
+        [switch]$Quiet
         )
 
     begin {
@@ -944,20 +944,33 @@ Function Create-Archive {
         #region Case-correct and check paths and aliases
         
         If (Test-Path "$ArchiveFile"){
-            
-            Switch ($OverWrite.IsPresent){
-                $True {
 
-                    try {$RemoveFile = Remove-Item $ArchiveFile -ErrorAction Stop}
-                    catch {throw "Unable to remove $ArchiveFile"}
+            Switch ($OverWrite.IsPresent){
+
+                $True {
+                    
+                    $FinalFileName = $ArchiveFile
+                    
+                    $ArchiveFile = $ArchiveFile + '.tmp'
+                    
+                    If (Test-Path $ArchiveFile){
+                     
+                        try {$RemoveFile = Remove-Item $ArchiveFile -ErrorAction Stop}
+                        catch {throw "Unable to remove temporary file $ArchiveFile"}
+
+                    }
+
+                    $OverWriteCleanup = $True
 
                 }
 
-                $False {throw "$ArchiveFile exists. Please specify a different filename, delete the file, or specify -Overwrite"}
+                $False {throw "$ArchiveFile exists. Please specify a new filename or use the -Overwrite parameter"}
 
             }
     
             }
+
+        Else {$OverWriteCleanup = $False}
         
         try {$Source = Get-AbsolutePath $Source}
         catch {throw "$Source is not a valid path"}
@@ -1258,7 +1271,7 @@ Function Create-Archive {
 
                Write-Progress -Activity "Compressing $ArchiveFile" -Status "Ready" -Completed
 
-               If ($Global:Interrupted -eq $True){$Operation = "$Operation Interrupted"}
+               If ($Global:Interrupted -eq $True){$Operation = "$Operation Interrupted"; $Successful = $False}
 
            }
 
@@ -1284,14 +1297,34 @@ Function Create-Archive {
     
         &$LogfileCleanup
 
-        If ($Global:Interrupted -eq $True){
-            
-            Remove-Item $ArchiveFile -ErrorAction SilentlyContinue
-            throw "Operation was interrupted before completion"
+        Switch ($Successful){
         
+            $False {
+
+                Remove-Item $ArchiveFile -ErrorAction SilentlyContinue
+
+                If ($Global:Interrupted -eq $True -and $Loud){throw "Operation was interrupted before completion"}
+                Elseif ($Global:Interrupted -eq $False -and $Loud){throw "Job errored; job found in state $($JobStatus.State) after completion"}
+                Else {return $False} #-Quiet
+
             }
 
-        If ($Successful -eq $False){throw "Job errored; job found in state $($JobStatus.State) after completion"}
+            $True {
+
+                If ($OverWriteCleanup){
+
+                    Remove-Item $FinalFileName -ErrorAction SilentlyContinue #Delete the original file
+                    
+                    Rename-Item -Path $ArchiveFile -NewName $FinalFileName -Confirm:$False #Rename the .tmp file to the original filename
+
+                }
+
+                If ($Loud){Write-Verbose "Archive file successfully created" -Verbose}
+                Else {return $True}
+
+            }
+
+        }
 
     }
 
