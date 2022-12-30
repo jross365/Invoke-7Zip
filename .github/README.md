@@ -58,16 +58,33 @@ This section outlines each of the functions in the module, their parameters and 
 ### Create-Archive
 Creates a ZIP, GZIP, BZIP2, 7Z, XZ or TAR archive file from a provided path.
 
-* Using the module is simple:
+#### Basic Usage
 
 ```
-Create-Archive -Source <File or Directory> -ArchiveFile <*Destination Archive File*>
+Create-Archive -Source <File or Directory> -ArchiveFile <FileName> -<Archive Format>
 ```
 
 Alternatively, you can use the alias:
 
 ```
-gea
+carch -Src <File or Directory> -File <FileName> -<ArchiveFormat>
+```
+
+#### Examples
+
+Creates a TAR file from D:\Downloads:
+```
+Create-Archive -Source D:\Downloads -ArchiveFile D:\downloads.tar -Tar
+```
+
+Creates a password-protected BZIP2 file from D:\downloads.tar:
+```
+Create-Archive -Source D:\downloads.tar -ArchiveFile D:\downloads.tar.bz2 -BZip2 -Password P@ssw0rd
+```
+
+Same as the above, but no password and breaks archive up into 4GB volumes:
+```
+Create-Archive -Source D:\downloads.tar -ArchiveFile D:\downloads.tar.bz2 -BZip2 -VolumeSize 4G
 ```
 
 ## Parameters

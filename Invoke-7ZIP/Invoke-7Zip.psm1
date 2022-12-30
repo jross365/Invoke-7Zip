@@ -913,7 +913,7 @@ Function Create-Archive {
         [Parameter(Mandatory=$True)][ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
         [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
         [Alias('Pass')][string]$Password,
-        [switch]$Overwrite,
+        [switch]$Overwrite, #Need to accommodate multi-volume archives
         [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize,
         [Parameter(ParameterSetName='Zip')][switch]$Zip, #Need to enumerate the desired file type from the -ArchiveFile extension
         [Parameter(ParameterSetName='GZip')][switch]$GZip,
