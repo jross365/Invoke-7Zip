@@ -1,21 +1,15 @@
 # Invoke-7Zip (**I7Z**)
 
-Invoke-7ZIP is a Powershell wrapper module for invoking various 7-Zip capabilities, such as Test, Compress and Extract.
+Invoke-7Zip is a Powershell wrapper module for 7-Zip.
 
 ## Description
 
-This documentation is a Work-In-Progress (WIP), and was copied from my *Get-ExtendedAttributes* module documentation.
+This module provides Powershell functionality for 7-Zip's essential features:
 
-**These attributes include:**
-
-* **Video** (image/sound/combined bitrates, length, resolution, encoding, etc)
-* **Music** (bitrate, length, artist, album, title, track, etc)
-* **Image/EXIF** (resolution, camera information, focal length, ISO, orientation, etc)
-* **Contacts** (Name, address, street, phone number, email address, etc)
-* **Email** (To, From, Attachments, CC, BCC, send/received dates, subject, etc)
-* **Documents** (Due date, word count, last-printed, last-saved, classification, pages, etc)
-
-* [And many more](https://stackoverflow.com/questions/22382010/what-options-are-available-for-shell32-folder-getdetailsof/62279888#62279888)
+* **List** the contents of archives (Standard and "Show Technical Information" views)
+* **Test** archives for integrity and password accuracy
+* **Archive** files and folders as ZIP, GZIP, BZIP2, 7Z, XZ or TAR 
+* **Extract** the contents of any archive supported by 7-Zip
 
 ![Example of Photo management](/.github/images/photosexample.png)
 

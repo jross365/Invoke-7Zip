@@ -119,8 +119,6 @@ Function Get-ArchiveContents {
     param( 
         [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
         [Parameter(Mandatory=$False)][Alias('TechInfo')][switch]$ShowTechnicalInfo
-
-
         )
     
     begin {
