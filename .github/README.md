@@ -52,11 +52,13 @@ Import-Module Invoke-7Zip -DisableNameChecking
 
 **Note:** Some of the module's functions use "unapproved verbs". This is because the "approved verbs" list doesn't contain verbs that apply to the breadth of possible uses for the noncompliant functions.
 
-## Using the Module
+## Module Cmdlets
 This section outlines each of the functions in the module, their parameters and examples for how to use the functions.
 
 ### Create-Archive
-Creates a ZIP, GZIP, BZIP2, 7Z, XZ or TAR archive file from a provided path.
+Creates an archive file from a provided path.
+
+![Create-Archive](/.github/images/extract-archive-example.png)
 
 #### Basic Usage
 
