@@ -89,12 +89,9 @@ Same as the above, but no password and breaks archive up into 4GB volumes:
 Create-Archive -Source D:\downloads.tar -ArchiveFile D:\downloads.tar.bz2 -BZip2 -VolumeSize 4G
 ```
 
-## Parameters
+#### Parameters
 
-**gea** contains many parameters to enhance its functionality and applicability.
-
-
-### **-Path**
+##### **-Path**
 The directory or file you wish to retrieve extended attributes from.
 
 This parameter is positional (*position 0*), and can be used without being named.
