@@ -58,7 +58,7 @@ This section outlines each of the functions in the module, their parameters and 
 ### Create-Archive
 Creates an archive file from a provided path.
 
-![Create-Archive](/.github/images/extract-archive-example.png)
+![Create-Archive](/.github/images/create-archive-example.png)
 
 #### Basic Usage
 
