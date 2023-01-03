@@ -86,8 +86,8 @@ Same as the above, but no password and breaks archive up into 4GB volumes:
 Create-Archive -Source D:\downloads.tar -ArchiveFile D:\downloads.tar.bz2 -BZip2 -VolumeSize 4G
 ```
 
-### Parameters
-**Note:** All parameters are explicitly positional. This is to make the parameter order more coherent and to make tab-completion easier.
+### General Parameters
+All parameters are explicitly positional to make the parameter order more coherent and to simplify tab-completion.
 
 #### **-Source**
 The file or directory you wish to add to an archive.
@@ -124,9 +124,9 @@ Valid values are any integer, followed by a "K", "M" or "G".
 
 Examples:
 
-512K = 512 Kilobytes
-50M = 50 Megabytes
-2G = 2 Gigabytes
+* 512K = 512 Kilobytes
+* 50M = 50 Megabytes
+* 2G = 2 Gigabytes
 
 If specified, the resultant archive files will be the name provided via *-ArchiveFile*, plus ".##"
 
@@ -134,9 +134,9 @@ If specified, the resultant archive files will be the name provided via *-Archiv
 
 Example:
 
-Backup.tar.00
-Backup.tar.01
-Backup.tar.02
+* Backup.tar.00
+* Backup.tar.01
+* Backup.tar.02
 
 #### **-Password**
 Applies a password to the archive, and encryption (when applicable to the chosen file format).
@@ -151,7 +151,6 @@ If specified but the compression algorithim doesn't support a non-fixed number o
 #### **-Overwrite**
 Overwrite pre-existing archive files of the same name (as was specified with *-ArchiveFile* parameter).
 
-
 #### **-KeepLogFile**
 Don't delete the "streaming" log file created during the archive creation process.
 
@@ -164,23 +163,21 @@ This parameter is useful for incorporating the function into "silent" scripts.
 
 If specified, the function will return *$true* if compression is successful, or *$false* if any problem is encountered.
 
+### -Zip Parameters
+These parameters apply to the *-Zip* parameterset.
 
+#### **-ZipMethod**
+Specifies the ZIP file compression method.
 
-This example excludes all files and folders containing ".png" or ".ps1" anywhere in the filename:
+Valid values are:
 
-```
-$N = Get-ExtendedAttributes -Exclude .png,.ps1
-```
-**Note:** *-Exclude* does not respect asterisks. If there's a desire to use asterisks for filtering, ask and I'll write the feature in. (*Or do it yourself, it's open source!*)
+* Copy
+* Deflate
+* Deflate64
+* BZip2
+* LZMA
 
-
-### **-Include**
-Applies an inclusionary ("*where match*") filter **for files only**. If *-Path* is a file, *-Include* is ignored.
-
-As with *-Exclude*, you can comma-separate multiple strings you'd like to include. 
-
-Also as with *-Exclude*, *-Include* does not respect asterisks.
-
+If unspecified, default is Deflate.
 
 ## Help
 Notes and comments regarding all things involving the word "help"
