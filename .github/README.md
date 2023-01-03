@@ -150,7 +150,7 @@ Attempts to force maximal multithreading for the archive creation process (total
 
 If not specified, the number of threads used will be the default for the chosen compression algorithm.
 
-If specified but the compression algorithim doesn't support a non-fixed number of threads (1, 2 or 4), this parameter has no impact.
+If specified but the compression algorithm doesn't support a non-fixed number of threads (1, 2 or 4), this parameter has no impact.
 
 #### **-Overwrite**
 Overwrite pre-existing archive files of the same name (as was specified with *-ArchiveFile* parameter).
@@ -287,10 +287,93 @@ If specified, 7-Zip will not compress the archive header.
 If specified, the archive header will be encrypted along with the archive contents.
 
 ### -Xz Parameters
-There are no additional parameters to be specified with the *-Xz* parameter.
+There are no additional parameters available with the *-Xz* parameter.
 
 ### -Tar Parameters
-There are no additional parameters to be specified with the *-Tar* parameter.
+There are no additional parameters available with the *-Tar* parameter.
+
+
+## Extract-Archive
+Extracts an archive to the specified path.
+
+![Extract-Archive](/.github/images/extract-archive-example.png)
+
+### Basic Usage
+
+```
+Extract-Archive -ArchiveFile <FileName> -Destination <Directory>
+```
+
+Alternatively, you can use the alias:
+
+```
+earch -File <FileName> -Dest <Directory>
+```
+
+### Examples
+
+Extracts a TAR file to D:\Downloads:
+```
+Extract-Archive -ArchiveFile D:\downloads.tar -Destination D:\Downloads 
+```
+
+Extracts a password-protected BZIP2 file to D:\Downloads:
+```
+Extract-Archive -ArchiveFile D:\downloads.tar.bz2 -Destination D:\Downloads -Password P@ssw0rd
+```
+
+Same as the above, but no password and an extracts archive broken up into volumes:
+```
+Extract-Archive -ArchiveFile D:\downloads.tar.bz2.00  -Destination D:\Downloads
+```
+
+### Parameters
+All parameters are explicitly positional to make the parameter order more coherent and to simplify tab-completion.
+
+#### **-ArchiveFile**
+The name of the archive to to be extracted.
+
+This parameter is mandatory.
+
+#### **-Destination**
+The destination directory for the extracted contents of the archive file.
+
+This parameter is mandatory.
+
+#### **-ArchiveFile**
+The name of the archive to to be extracted.
+
+This parameter is mandatory.
+
+#### **-UseMultithreading**
+
+Attempts to force maximal multithreading for the archive extraction process (total cores - 1).
+
+If not specified, the number of threads used will be the default for the chosen compression algorithm.
+
+If specified but the compression algorithm doesn't support a non-fixed number of threads (1, 2 or 4), this parameter has no impact.
+
+#### **-KeepLogFile**
+Don't delete the "streaming" log file created during the archive extraction process.
+
+This parameter is useful for troubleshooting and reviewing 7Zip's behavior after completion.
+
+#### **-Quiet**
+Suppress console output, (most) error output, and don't show a progress bar during the archive extraction process.
+
+This parameter is useful for incorporating the function into "silent" scripts.
+
+If specified, the function will return *$true* if compression is successful, or *$false* if any problem is encountered.
+
+#### **-Password**
+Specifies the password to decrypt a password-protected archive file.
+
+#### **-SkipPasswordCheck**
+If specified, *Extract-Archive* will not validate whether the specified password is correct before attempting to extract the archive's contents.
+
+This parameter is useful if the archive contains a very large (>1GB) file or files, and will speed up processing.
+
+Recommended use is if you are certain of the file password.
 
 ## Help
 Notes and comments regarding all things involving the word "help"
