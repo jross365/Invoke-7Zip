@@ -108,11 +108,15 @@ Specifies the creation of a GZIP file.
 #### **-BZip2**
 Specifies the creation of a BZIP2 file.
 
+Note: BZip2 can only compress a single file.
+
 #### **-SevenZip**
 Specifies the creation of a 7Z file.
 
 #### **-XZ**
 Specifies the creation of an XZ file.
+
+Note: XZ can only compress a single file.
 
 #### **-Tar**
 Specifies the creation of a Tar file.
@@ -208,8 +212,58 @@ Use UTF-8 encoding for filenames that use non-ASCII encoding.
 #### **-Passes**
 Specifies the number of passes 7-Zip will make when compressing each file.
 
-This parameter corresponds with values defined by the *-CompressionLevel* and *-ZipMethod* parameters, and should be unused under most circumstances.
+Valid values are any integer from 1 to 10.
 
+This parameter corresponds with values defined by the *-CompressionLevel* and *-ZipMethod* parameters, and should not be used under most circumstances.
+
+### -GZip Parameters
+These parameters apply to the *-GZip* parameter set.
+
+#### **-CompressionLevel**
+Specifies the level of compression, from 0 (none) to 9 (maximum).
+
+If unspecified, default is 5.
+
+#### **-EncryptionLevel**
+Specifies the level of encryption.
+
+Valid values are:
+
+* ZipCrypto
+* AES128
+* AES192
+* AES256
+
+If unspecified, default is ZipCrypto.
+
+#### **-PreserveTimestamps**
+If specified, file creation, modification and access information is preserved in compressed files.
+
+#### **-UseLocalCodePage**
+Preserve the locale character set for compressed file names.
+
+#### **-UTF8ForNonASCII**
+Use UTF-8 encoding for filenames that use non-ASCII encoding.
+
+#### **-Passes**
+Specifies the number of passes 7-Zip will make when compressing each file.
+
+Valid values are any integer from 1 to 10.
+
+This parameter corresponds with values defined by the *-CompressionLevel* parameter, and should not be used under most circumstances.
+
+### -BZip2 Parameters
+These parameters apply to the *-BZip2* parameter set.
+
+#### **-CompressionLevel**
+Specifies the level of compression, from 0 (none) to 9 (maximum).
+
+#### **-Passes**
+Specifies the number of passes 7-Zip will make when compressing each file.
+
+Valid values are any integer from 1 to 15.
+
+This parameter corresponds with values defined by the *-CompressionLevel* parameter, and should not be used under most circumstances.
 
 ## Help
 Notes and comments regarding all things involving the word "help"
