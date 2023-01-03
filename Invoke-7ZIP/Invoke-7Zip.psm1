@@ -843,7 +843,7 @@ Used with -Zip and -GZip.
 
 If specified, preserves the system's locale specifics (region and character information).
 
-.PARAMETER UseUTF8ForNonASCIISymbols
+.PARAMETER Use$UTF8ForNonASCIISymbols
 Used with -Zip and -GZip. 
 
 If specified, Non-ASCII symbols (in filenames) will be assigned UTF-8 equivalents.
@@ -927,9 +927,9 @@ Function Create-Archive {
         [Parameter(ParameterSetName='Zip',Position=9)][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod,
         [Parameter(ParameterSetName='Zip',Position=10)][Parameter(ParameterSetName='GZip',Position=9)][Parameter(ParameterSetName='BZip2',Position=9)][Parameter(ParameterSetName='7z',Position=9)][ValidatePattern('[013579]')][int]$CompressionLevel,
         [Parameter(ParameterSetName='Zip',Position=11)][Parameter(ParameterSetName='GZip',Position=10)][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod,
-        [Parameter(ParameterSetName='Zip',Position=12)][Parameter(ParameterSetName='GZip',Position=11)][Parameter(ParameterSetName='7z',Position=10)][switch]$PreserveTimestamps,
+        [Parameter(ParameterSetName='Zip',Position=12)][Parameter(ParameterSetName='GZip',Position=11)][Parameter(ParameterSetName='7z',Position=10)][switch]$PreserveTimestamps, #Need to accommodate different defaults (on vs off)
         [Parameter(ParameterSetName='Zip',Position=13)][Parameter(ParameterSetName='GZip',Position=12)][switch]$UseLocalCodePage,
-        [Parameter(ParameterSetName='Zip',Position=14)][Parameter(ParameterSetName='GZip',Position=13)][switch]$UseUTF8ForNonASCIISymbols,
+        [Parameter(ParameterSetName='Zip',Position=14)][Parameter(ParameterSetName='GZip',Position=13)][switch]$UTF8ForNonASCII,
         [Parameter(ParameterSetName='Zip',Position=15)][Parameter(ParameterSetName='GZip',Position=14)][Parameter(ParameterSetName='BZip2',Position=10)][int]$Passes, #Need to validate 1-10 (ZIP/GZIP & Deflate) and 1-15 (BZIP)
         [Parameter(ParameterSetName='7z',Position=11)][switch]$SolidModeOff,
         [Parameter(ParameterSetName='7z',Position=12)][switch]$ExeCompressionOff,
@@ -1032,7 +1032,7 @@ Function Create-Archive {
             If ($PSBoundParameters.ContainsKey('EncryptionMethod')){$7zParameters += "-mem=$EncryptionMethod "}
             If ($PreserveTimestamps.IsPresent){$7zParameters += "-mtc=on "}
             If ($UseLocalCodePage.IsPresent){$7zParameters += "-mcl=on "}
-            If ($UseUTF8ForNonASCIISymbols.IsPresent){$7zParameters += "-mcu=on "}
+            If ($UTF8ForNonASCII.IsPresent){$7zParameters += "-mcu=on "}
 
         }
 
