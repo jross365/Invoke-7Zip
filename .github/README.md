@@ -164,7 +164,7 @@ This parameter is useful for incorporating the function into "silent" scripts.
 If specified, the function will return *$true* if compression is successful, or *$false* if any problem is encountered.
 
 ### -Zip Parameters
-These parameters apply to the *-Zip* parameterset.
+These parameters apply to the *-Zip* parameter set.
 
 #### **-ZipMethod**
 Specifies the ZIP file compression method.
@@ -178,6 +178,38 @@ Valid values are:
 * LZMA
 
 If unspecified, default is Deflate.
+
+#### **-CompressionLevel**
+Specifies the level of compression, from 0 (none) to 9 (maximum).
+
+If unspecified, default is 5.
+
+#### **-EncryptionLevel**
+Specifies the level of encryption.
+
+Valid values are:
+
+* ZipCrypto
+* AES128
+* AES192
+* AES256
+
+If unspecified, default is ZipCrypto.
+
+#### **-PreserveTimestamps**
+If specified, file creation, modification and access information is preserved in compressed files.
+
+#### **-UseLocalCodePage**
+Preserve the locale character set for compressed file names.
+
+#### **-UTF8ForNonASCII**
+Use UTF-8 encoding for filenames that use non-ASCII encoding.
+
+#### **-Passes**
+Specifies the number of passes 7-Zip will make when compressing each file.
+
+This parameter corresponds with values defined by the *-CompressionLevel* and *-ZipMethod* parameters, and should be unused under most circumstances.
+
 
 ## Help
 Notes and comments regarding all things involving the word "help"
