@@ -8,14 +8,14 @@ This module extends Powershell functionality to 7-Zip, while providing script an
 
 ![Example of 7z Archive Creation](/.github/images/compressionexample.png)
 
-### Capabilities
+## Capabilities
 
 * **List** the contents of archives
 * **Test** archives for integrity or password accuracy
 * **Archive** files and folders as ZIP, GZIP, BZIP2, 7Z, XZ or TAR 
 * **Extract** the contents of any archive supported by 7-Zip
 
-### Features
+## Features
 
 * **Progress Bar** provides a visual and textual indicator of archive and extract progress
 * **Quiet Mode** for script-friendly message suppression of Archive/Extract operations
@@ -52,15 +52,12 @@ Import-Module Invoke-7Zip -DisableNameChecking
 
 **Note:** Some of the module's functions use "unapproved verbs". This is because the "approved verbs" list doesn't contain verbs that apply to the breadth of possible uses for the noncompliant functions.
 
-## Module Cmdlets
-This section outlines each of the functions in the module, their parameters and examples for how to use the functions.
-
-### Create-Archive
+## Create-Archive
 Creates an archive file from a provided path.
 
 ![Create-Archive](/.github/images/create-archive-example.png)
 
-#### Basic Usage
+### Basic Usage
 
 ```
 Create-Archive -Source <File or Directory> -ArchiveFile <FileName> -<Archive Format>
@@ -72,7 +69,7 @@ Alternatively, you can use the alias:
 carch -Src <File or Directory> -File <FileName> -<ArchiveFormat>
 ```
 
-#### Examples
+### Examples
 
 Creates a TAR file from D:\Downloads:
 ```
@@ -89,38 +86,38 @@ Same as the above, but no password and breaks archive up into 4GB volumes:
 Create-Archive -Source D:\downloads.tar -ArchiveFile D:\downloads.tar.bz2 -BZip2 -VolumeSize 4G
 ```
 
-#### Parameters
+### Parameters
 **Note:** All parameters are explicitly positional. This is to make the parameter order more coherent and to make tab-completion easier.
 
-##### **-Source**
+#### **-Source**
 The file or directory you wish to add to an archive.
 
 This parameter is mandatory.
 
-##### **-ArchiveFile**
+#### **-ArchiveFile**
 The name of the archive to to be created.
 
 This parameter is mandatory.
 
-##### **-Zip**
+#### **-Zip**
 Specifies the creation of a ZIP file.
 
-##### **-GZip**
+#### **-GZip**
 Specifies the creation of a GZIP file.
 
-##### **-BZip2**
+#### **-BZip2**
 Specifies the creation of a BZIP2 file.
 
-##### **-SevenZip**
+#### **-SevenZip**
 Specifies the creation of a 7Z file.
 
-##### **-XZ**
+#### **-XZ**
 Specifies the creation of an XZ file.
 
-##### **-Tar**
+#### **-Tar**
 Specifies the creation of a Tar file.
 
-##### **-VolumeSize**
+#### **-VolumeSize**
 Breaks the resultant archive file up into individual files of the specified size.
 
 Valid values are any integer, followed by a "K", "M" or "G".
@@ -141,26 +138,26 @@ Backup.tar.00
 Backup.tar.01
 Backup.tar.02
 
-##### **-Password**
+#### **-Password**
 Applies a password to the archive, and encryption (when applicable to the chosen file format).
 
-##### **-UseMultithreading**
+#### **-UseMultithreading**
 Attempts to force maximal multithreading for the archive creation process (total cores - 1).
 
 If not specified, the number of threads used will be the default for the chosen compression algorithm.
 
 If specified but the compression algorithim doesn't support a non-fixed number of threads (1, 2 or 4), this parameter has no impact.
 
-##### **-Overwrite**
+#### **-Overwrite**
 Overwrite pre-existing archive files of the same name (as was specified with *-ArchiveFile* parameter).
 
 
-##### **-KeepLogFile**
+#### **-KeepLogFile**
 Don't delete the "streaming" log file created during the archive creation process.
 
 This parameter is useful for troubleshooting and reviewing 7Zip's behavior after completion.
 
-##### **-Quiet**
+#### **-Quiet**
 Suppress console output, (most) error output, and don't show a progress bar during the archive creation process.
 
 This parameter is useful for incorporating the function into "silent" scripts.
