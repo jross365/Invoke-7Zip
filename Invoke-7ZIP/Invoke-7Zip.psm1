@@ -910,31 +910,32 @@ GitHub: https://github.com/jross365/Invoke-7Zip
 Function Create-Archive {
     [CmdletBinding()] 
     param( 
-        [Parameter(Mandatory=$True)][ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
-        [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
-        [Alias('Pass')][string]$Password,
-        [switch]$Overwrite, #Need to accommodate multi-volume archives
-        [ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize,
-        [Parameter(ParameterSetName='Zip')][switch]$Zip, #Need to enumerate the desired file type from the -ArchiveFile extension
-        [Parameter(ParameterSetName='GZip')][switch]$GZip,
-        [Parameter(ParameterSetName='BZip2')][switch]$BZip2,
-        [Parameter(ParameterSetName='7z')][switch]$SevenZip,
-        [Parameter(ParameterSetName='Xz')][switch]$Xz,
-        [Parameter(ParameterSetName='tar')][switch]$Tar,
-        [Parameter(ParameterSetName='Zip')][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod,
-        [Alias('Multithread')][switch]$UseMultithreading,
-        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][Parameter(ParameterSetName='7z')][ValidatePattern('[013579]')][int]$CompressionLevel,
-        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod,
-        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='7z')][switch]$PreserveTimestamps,
-        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][switch]$UseLocalCodePage,
-        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][switch]$UseUTF8ForNonASCIISymbols,
-        [Parameter(ParameterSetName='Zip')][Parameter(ParameterSetName='GZip')][Parameter(ParameterSetName='BZip2')][int]$Passes, #Need to validate 1-10 (ZIP/GZIP & Deflate) and 1-15 (BZIP)
-        [Parameter(ParameterSetName='7z')][switch]$SolidModeOff,
-        [Parameter(ParameterSetName='7z')][switch]$ExeCompressionOff,
-        [Parameter(ParameterSetName='7z')][switch]$HeaderCompressionOff,
-        [Parameter(ParameterSetName='7z')][switch]$EncryptHeaderOn,
-        [Alias('KeepLog')][switch]$KeepLogfile,
-        [switch]$Quiet
+        [Parameter(Mandatory=$True,Position=0)][ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
+        [Parameter(Mandatory=$True,Position=1)][Alias('File')][string]$ArchiveFile,
+
+        [Parameter(ParameterSetName='Zip',Position=2)][switch]$Zip, #Need to enumerate the desired file type from the -ArchiveFile extension
+        [Parameter(ParameterSetName='GZip',Position=2)][switch]$GZip,
+        [Parameter(ParameterSetName='BZip2',Position=2)][switch]$BZip2,
+        [Parameter(ParameterSetName='7z',Position=2)][switch]$SevenZip,
+        [Parameter(ParameterSetName='Xz',Position=2)][switch]$Xz,
+        [Parameter(ParameterSetName='tar',Position=2)][switch]$Tar,
+        [Parameter(Position=3)][ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize,
+        [Parameter(Position=4)][Alias('Pass')][string]$Password,
+        [Parameter(Position=5)][Alias('Multithread')][switch]$UseMultithreading,
+        [Parameter(Position=6)][switch]$Overwrite, #Need to write in accommodation of multi-volume archives
+        [Parameter(Position=7)][Alias('KeepLog')][switch]$KeepLogfile,
+        [Parameter(Position=8)][switch]$Quiet,
+        [Parameter(ParameterSetName='Zip',Position=9)][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod,
+        [Parameter(ParameterSetName='Zip',Position=10)][Parameter(ParameterSetName='GZip',Position=9)][Parameter(ParameterSetName='BZip2',Position=9)][Parameter(ParameterSetName='7z',Position=9)][ValidatePattern('[013579]')][int]$CompressionLevel,
+        [Parameter(ParameterSetName='Zip',Position=11)][Parameter(ParameterSetName='GZip',Position=10)][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod,
+        [Parameter(ParameterSetName='Zip',Position=12)][Parameter(ParameterSetName='GZip',Position=11)][Parameter(ParameterSetName='7z',Position=10)][switch]$PreserveTimestamps,
+        [Parameter(ParameterSetName='Zip',Position=13)][Parameter(ParameterSetName='GZip',Position=12)][switch]$UseLocalCodePage,
+        [Parameter(ParameterSetName='Zip',Position=14)][Parameter(ParameterSetName='GZip',Position=13)][switch]$UseUTF8ForNonASCIISymbols,
+        [Parameter(ParameterSetName='Zip',Position=15)][Parameter(ParameterSetName='GZip',Position=14)][Parameter(ParameterSetName='BZip2',Position=10)][int]$Passes, #Need to validate 1-10 (ZIP/GZIP & Deflate) and 1-15 (BZIP)
+        [Parameter(ParameterSetName='7z',Position=11)][switch]$SolidModeOff,
+        [Parameter(ParameterSetName='7z',Position=12)][switch]$ExeCompressionOff,
+        [Parameter(ParameterSetName='7z',Position=13)][switch]$HeaderCompressionOff,
+        [Parameter(ParameterSetName='7z',Position=14)][switch]$EncryptHeaderOn
         )
 
     begin {

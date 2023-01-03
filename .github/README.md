@@ -91,8 +91,8 @@ Create-Archive -Source D:\downloads.tar -ArchiveFile D:\downloads.tar.bz2 -BZip2
 
 #### Parameters
 
-##### **-Path**
-The directory or file you wish to retrieve extended attributes from.
+##### **-Source**
+The file or directory you wish to add to an archive.
 
 This parameter is positional (*position 0*), and can be used without being named.
 
