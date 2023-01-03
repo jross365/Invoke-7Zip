@@ -286,6 +286,11 @@ If specified, 7-Zip will not compress the archive header.
 #### **-EncryptHeaderOn**
 If specified, the archive header will be encrypted along with the archive contents.
 
+### -Xz Parameters
+There are no additional parameters to be specified with the *-Xz* parameter.
+
+### -Tar Parameters
+There are no additional parameters to be specified with the *-Tar* parameter.
 
 ## Help
 Notes and comments regarding all things involving the word "help"
