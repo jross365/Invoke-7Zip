@@ -90,37 +90,84 @@ Create-Archive -Source D:\downloads.tar -ArchiveFile D:\downloads.tar.bz2 -BZip2
 ```
 
 #### Parameters
+**Note:** All parameters are explicitly positional. This is to make the parameter order more coherent and to make tab-completion easier.
 
 ##### **-Source**
 The file or directory you wish to add to an archive.
 
-This parameter is positional (*position 0*), and can be used without being named.
+This parameter is mandatory.
 
-If unspecified, *-Path* uses the present working directory.
+##### **-ArchiveFile**
+The name of the archive to to be created.
+
+This parameter is mandatory.
+
+##### **-Zip**
+Specifies the creation of a ZIP file.
+
+##### **-GZip**
+Specifies the creation of a GZIP file.
+
+##### **-BZip2**
+Specifies the creation of a BZIP2 file.
+
+##### **-SevenZip**
+Specifies the creation of a 7Z file.
+
+##### **-XZ**
+Specifies the creation of an XZ file.
+
+##### **-Tar**
+Specifies the creation of a Tar file.
+
+##### **-VolumeSize**
+Breaks the resultant archive file up into individual files of the specified size.
+
+Valid values are any integer, followed by a "K", "M" or "G".
+
+Examples:
+
+512K = 512 Kilobytes
+50M = 50 Megabytes
+2G = 2 Gigabytes
+
+If specified, the resultant archive files will be the name provided via *-ArchiveFile*, plus ".##"
+
+**Note:** With the 7Zip application, no "root" (non-numbered) file is created when volume size is specified.
+
+Example:
+
+Backup.tar.00
+Backup.tar.01
+Backup.tar.02
+
+##### **-Password**
+Applies a password to the archive, and encryption (when applicable to the chosen file format).
+
+##### **-UseMultithreading**
+Attempts to force maximal multithreading for the archive creation process (total cores - 1).
+
+If not specified, the number of threads used will be the default for the chosen compression algorithm.
+
+If specified but the compression algorithim doesn't support a non-fixed number of threads (1, 2 or 4), this parameter has no impact.
+
+##### **-Overwrite**
+Overwrite pre-existing archive files of the same name (as was specified with *-ArchiveFile* parameter).
 
 
-### **-Recurse**
-In cases where *-Path* is a directory, *-Recurse* will enumerate all subfolders and files within the provided path.
+##### **-KeepLogFile**
+Don't delete the "streaming" log file created during the archive creation process.
 
-If *-Path* specifies a filename, *-Recurse* is ignored.
+This parameter is useful for troubleshooting and reviewing 7Zip's behavior after completion.
 
+##### **-Quiet**
+Suppress console output, (most) error output, and don't show a progress bar during the archive creation process.
 
-### **-WriteProgress**
-Displays a progress bar to support your mental health and welfare.
+This parameter is useful for incorporating the function into "silent" scripts.
 
-The progress bar reports which file it's enumerating attributes for, and displays the overall file progress.
-
-
-### **-HelperFile**
-Provides the function with the path of the Helper File to use.
-
-Details about what a Helper File is and how to use it are written in the **Helper File** section below.
+If specified, the function will return *$true* if compression is successful, or *$false* if any problem is encountered.
 
 
-### **-Exclude**
-Applies an exclusionary ("*where not match*") filter on subfolders and files. If *-Path* is a file, *-Exclude* is ignored.
-
-To specify more than one filter, comma-separate the strings you'd like to exclude.
 
 This example excludes all files and folders containing ".png" or ".ps1" anywhere in the filename:
 

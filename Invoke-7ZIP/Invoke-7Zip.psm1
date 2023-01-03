@@ -912,7 +912,6 @@ Function Create-Archive {
     param( 
         [Parameter(Mandatory=$True,Position=0)][ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
         [Parameter(Mandatory=$True,Position=1)][Alias('File')][string]$ArchiveFile,
-
         [Parameter(ParameterSetName='Zip',Position=2)][switch]$Zip, #Need to enumerate the desired file type from the -ArchiveFile extension
         [Parameter(ParameterSetName='GZip',Position=2)][switch]$GZip,
         [Parameter(ParameterSetName='BZip2',Position=2)][switch]$BZip2,
