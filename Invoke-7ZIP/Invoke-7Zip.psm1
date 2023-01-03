@@ -467,13 +467,13 @@ GitHub: https://github.com/jross365/Invoke-7Zip
 Function Extract-Archive { 
     [CmdletBinding()] 
     param( 
-        [Parameter(Mandatory=$True)][Alias('File')][string]$ArchiveFile,
-        [Parameter(Mandatory=$True)][ValidateScript({Test-Path $_})][Alias('Dest')][string]$Destination,
-        [Parameter(ParameterSetName='PW')][Alias('Pass')][string]$Password,
-        [Parameter(ParameterSetName='PW')][Alias('SkipCheck')][switch]$SkipPasswordCheck,
-        [Alias('Multithread')][switch]$UseMultithreading,
-        [Alias('KeepLog')][switch]$KeepLogfile,
-        [switch]$Quiet
+        [Parameter(Mandatory=$True,Position=0)][Alias('File')][string]$ArchiveFile,
+        [Parameter(Mandatory=$True,Position=1)][ValidateScript({Test-Path $_})][Alias('Dest')][string]$Destination,
+        [Parameter(Position=2)][Alias('Multithread')][switch]$UseMultithreading,
+        [Parameter(Position=3)][Alias('KeepLog')][switch]$KeepLogfile,
+        [Parameter(Position=4)][switch]$Quiet,
+        [Parameter(ParameterSetName='PW',Position=5)][Alias('Pass')][string]$Password,
+        [Parameter(ParameterSetName='PW',Position=6)][Alias('SkipCheck')][switch]$SkipPasswordCheck
         )
     begin {
         #region case-correct and check paths and aliases
