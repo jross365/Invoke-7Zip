@@ -340,11 +340,6 @@ The destination directory for the extracted contents of the archive file.
 
 This parameter is mandatory.
 
-#### **-ArchiveFile**
-The name of the archive to to be extracted.
-
-This parameter is mandatory.
-
 #### **-UseMultithreading**
 
 Attempts to force maximal multithreading for the archive extraction process (total cores - 1).
