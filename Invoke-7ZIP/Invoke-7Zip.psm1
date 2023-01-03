@@ -934,7 +934,7 @@ Function Create-Archive {
         [Parameter(ParameterSetName='7z',Position=11)][switch]$SolidModeOff,
         [Parameter(ParameterSetName='7z',Position=12)][switch]$ExeCompressionOff,
         [Parameter(ParameterSetName='7z',Position=13)][switch]$HeaderCompressionOff,
-        [Parameter(ParameterSetName='7z',Position=14)][switch]$EncryptHeaderOn
+        [Parameter(ParameterSetName='7z',Position=14)][switch]$EncryptHeaderOn #Need to validate the use of "-Password" if this switch is specified
         )
 
     begin {

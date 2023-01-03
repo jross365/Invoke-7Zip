@@ -265,6 +265,28 @@ Valid values are any integer from 1 to 15.
 
 This parameter corresponds with values defined by the *-CompressionLevel* parameter, and should not be used under most circumstances.
 
+### -SevenZip Parameters
+These parameters apply to the *-SevenZip* parameter set.
+
+#### **-CompressionLevel**
+Specifies the level of compression, from 0 (none) to 9 (maximum).
+
+#### **-PreserveTimestamps**
+If specified, file creation, modification and access information is preserved in compressed files.
+
+#### **-SolidModeOff**
+If specified, files are compressed individually instead of as a single, contiguous "block" of binary.
+
+#### **-ExeCompressionOff**
+If specified, 7-Zip will not attempt to compress executable files.
+
+#### **-HeaderCompressionOff**
+If specified, 7-Zip will not compress the archive header.
+
+#### **-EncryptHeaderOn**
+If specified, the archive header will be encrypted along with the archive contents.
+
+
 ## Help
 Notes and comments regarding all things involving the word "help"
 
