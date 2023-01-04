@@ -372,7 +372,49 @@ Recommended use is if you are certain of the file password.
 
 
 ## Get-ArchiveContents
-Lists the contents of an archive. Files parsed and 
+Lists the contents of an archive.
+
+![Get-ArchiveContents](/.github/images/get-archivecontents-example.png)
+
+### Basic Usage
+
+```
+Get-ArchiveContents -File <FileName>
+```
+
+Alternatively, you can use the alias:
+
+```
+gac -File <FileName>
+```
+
+### Examples
+
+Displays the basic information for files in an archive:
+```
+Get-ArchiveContents -ArchiveFile D:\downloads.tar
+```
+
+Displays detailed information for files in an archive:
+```
+Get-ArchiveContents -ArchiveFile D:\downloads.tar -ShowTechnicalInfo
+```
+
+### Parameters
+
+#### **-File**
+The name of the archive whose contents should be enumerated.
+
+This parameter is mandatory.
+
+#### **-ShowTechnicalInfo**
+If specified, will display advanced information about the archive's contents.
+
+This parameter is recommended for most queries, though it's not a default in 7-Zip.
+
+
+## Test-Archive
+Tests an archive's integrity, and/or tests the validity of an archive's password.
 
 ![Get-ArchiveContents](/.github/images/get-archivecontents-example.png)
 
