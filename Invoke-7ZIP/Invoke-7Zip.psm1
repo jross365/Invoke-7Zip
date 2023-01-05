@@ -338,7 +338,7 @@ Function Test-Archive {
         catch {
             
             If ($Quiet.IsPresent){$SkipProcessBlockAndReturnFalse = $True}
-            Else {throw "Errors encountered when enumerating contents of $ArchiveContents"}        
+            Else {throw "Errors encountered when enumerating contents of $ArchiveFile"}        
             
         }
 
@@ -355,13 +355,13 @@ Function Test-Archive {
         #endregion Evaluate whether archive is password protected
         
         #For odd Powershell 5 behavior where not specifying "-Password" causes later throw to hang:
-        $Password = $null   
-        
+        If ($Password.Length -eq 0){$Password = $null}
+                
         $7zParameters = ""
         $7zParameters += " t " + '"' + "$ArchiveFile" + '" '
         $7zParameters += "-p" + '"' + "$Password" + '" '
         #If ($PSBoundParameters.ContainsKey("Password")){$7zParameters += "-p" + '"' + "$Password" + '" '}
-        If ($PSBoundParameters.ContainsKey("SpecificPathOrPattern")){$7zParameters += "-i!\$SpecificPathOrPattern "}
+        If ($PSBoundParameters.ContainsKey("SpecificPathOrPattern")){$7zParameters += "-i!\ $SpecificPathOrPattern "}
 
         #$7zParameters += '-bso0 -bd 2>&1'
         $7zParameters = $7zParameters.TrimEnd()

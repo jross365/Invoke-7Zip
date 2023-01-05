@@ -379,7 +379,7 @@ Lists the contents of an archive.
 ### Basic Usage
 
 ```
-Get-ArchiveContents -File <FileName>
+Get-ArchiveContents -ArchiveFile <FileName>
 ```
 
 Alternatively, you can use the alias:
@@ -416,28 +416,28 @@ This parameter is recommended for most queries, though it's not a default in 7-Z
 ## Test-Archive
 Tests an archive's integrity, and/or tests the validity of an archive's password.
 
-![Get-ArchiveContents](/.github/images/get-archivecontents-example.png)
+![Test-Archive](/.github/images/test-archive-example.png)
 
 ### Basic Usage
 
 ```
-Get-ArchiveContents -File <FileName>
+Test-Archive -ArchiveFile <FileName>
 ```
 
 Alternatively, you can use the alias:
 
 ```
-gac -File <FileName>
+tarch -File <FileName>
 ```
 
 ### Examples
 
-Displays the basic information for files in an archive:
+Tests the validity of a password against an archive:
 ```
-Get-ArchiveContents -ArchiveFile D:\downloads.tar
+Test-Archive -ArchiveFile downloads.tar -Password "robblerobble"
 ```
 
-Displays detailed information for files in an archive:
+Tests a specific file
 ```
 Get-ArchiveContents -ArchiveFile D:\downloads.tar -ShowTechnicalInfo
 ```
