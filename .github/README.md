@@ -420,7 +420,7 @@ This parameter is recommended for most queries, though it's not a default in 7-Z
 ## Test-Archive
 Tests an archive's integrity, and/or tests the validity of an archive's password.
 
-![Test-Archive](/.github/images/test-archive-example.png)
+![Test-Archive](/.github/images/test-archive-example.png) 
 
 ### Basic Usage
 
