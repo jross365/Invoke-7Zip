@@ -449,10 +449,24 @@ The name of the archive whose contents should be enumerated.
 
 This parameter is mandatory.
 
-#### **-ShowTechnicalInfo**
-If specified, will display advanced information about the archive's contents.
+#### **-SpecificPathOrPattern**
+If specified, will attempt to test files based on the provided pattern.
 
-This parameter is recommended for most queries, though it's not a default in 7-Zip.
+Please note that this functionality extends from [the -ir!](https://sevenzip.osdn.jp/chm/cmdline/switches/include.htm) parameter.
+
+The *-ir!* parameter is unreliable and unpredictable. For example, providing the explicit path of a file in the archive may find numerous dissimilar filenames, or it may find no files at all.
+
+If this parameter is necessary, it is strongly recommended that you provide the explicit file path within the archive. You can use the *Get-ArchiveContents* function to identify such a path (though the *Get-ArchiveContents* function also uses the Test-Archive function :-) )
+
+#### **-Password**
+Specifies the password to use for testing the password and/or testing the archive.
+
+#### **-Quiet**
+Suppress console output, (most) error output, and don't show a progress bar during the archive extraction process.
+
+This parameter is useful for incorporating the function into "silent" scripts.
+
+If specified, the function will return *$true* if compression is successful, or *$false* if any problem is encountered.
 
 
 ## Help

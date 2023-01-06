@@ -354,16 +354,14 @@ Function Test-Archive {
         } #Cl
         #endregion Evaluate whether archive is password protected
         
-        #For odd Powershell 5 behavior where not specifying "-Password" causes later throw to hang:
+        #Not specifying a password for a password-protected archive will cause 7z to sit at a password prompt
         If ($Password.Length -eq 0){$Password = $null}
                 
         $7zParameters = ""
         $7zParameters += " t " + '"' + "$ArchiveFile" + '" '
         $7zParameters += "-p" + '"' + "$Password" + '" '
-        #If ($PSBoundParameters.ContainsKey("Password")){$7zParameters += "-p" + '"' + "$Password" + '" '}
-        If ($PSBoundParameters.ContainsKey("SpecificPathOrPattern")){$7zParameters += "-i!\ $SpecificPathOrPattern "}
+        If ($PSBoundParameters.ContainsKey("SpecificPathOrPattern")){$7zParameters += "-ir!\ $SpecificPathOrPattern "}
 
-        #$7zParameters += '-bso0 -bd 2>&1'
         $7zParameters = $7zParameters.TrimEnd()
 
     } #Close Begin
