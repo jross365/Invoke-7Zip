@@ -99,28 +99,6 @@ The name of the archive to to be created.
 
 This parameter is mandatory.
 
-#### **-Zip**
-Specifies the creation of a ZIP file.
-
-#### **-GZip**
-Specifies the creation of a GZIP file.
-
-#### **-BZip2**
-Specifies the creation of a BZIP2 file.
-
-Note: BZip2 can only compress a single file.
-
-#### **-SevenZip**
-Specifies the creation of a 7Z file.
-
-#### **-XZ**
-Specifies the creation of an XZ file.
-
-Note: XZ can only compress a single file.
-
-#### **-Tar**
-Specifies the creation of a Tar file.
-
 #### **-VolumeSize**
 Breaks the resultant archive file up into individual files of the specified size.
 
@@ -166,6 +144,32 @@ Suppress console output, (most) error output, and don't show a progress bar duri
 This parameter is useful for incorporating the function into "silent" scripts.
 
 If specified, the function will return *$true* if compression is successful, or *$false* if any problem is encountered.
+
+### Archive Format Parameters
+These parameters are used to specify the type of archive you wish to create.
+Each of these parameters leads a parameters-set specific to the chosen format.
+
+#### **-Zip**
+Specifies the creation of a ZIP file.
+
+#### **-GZip**
+Specifies the creation of a GZIP file.
+
+#### **-BZip2**
+Specifies the creation of a BZIP2 file.
+
+Note: BZip2 can only compress a single file.
+
+#### **-SevenZip**
+Specifies the creation of a 7Z file.
+
+#### **-XZ**
+Specifies the creation of an XZ file.
+
+Note: XZ can only compress a single file.
+
+#### **-Tar**
+Specifies the creation of a Tar file.
 
 ### -Zip Parameters
 These parameters apply to the *-Zip* parameter set.
