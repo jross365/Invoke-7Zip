@@ -481,9 +481,9 @@ Every function in this module has a full-featured Comment-Based Help (CBH) heade
 
 You can run the **Get-Help** command to see more information about parameters, aliases, examples, etc.
 
-To view the full help manifest for Get-ExtendedAttributes, for example:
+To view the full help manifest for Invoke-7Zip, for example:
 ```
-Get-Help Get-ExtendedAttributes -Full
+Get-Help Invoke-7Zip -Full
 ```
 
 ### Reporting Bugs
@@ -492,25 +492,22 @@ With the size and complexity of this module, there are undoubtedly bugs and prob
 If you encounter a bug, please report it. Let me know exactly how you encountered it, including relevant conditions, parameter input and console output.
 
 ## Known Issues
-* Strange/faulty behavior when working with files in UserProfile directories (caused by NTUSER.DAT)
-* ~~Some file attribute values obtained from downloaded or non-Windows sources contain LRM (Left-to-Right Mark, Unicode 8206)~~ (06/06/2022)
-    * ~~This is easy to sanitize, but the simplest way (ConvertTo-Csv => -replace [char][int](8206) | ConvertFrom-Csv) may add significant overhead~~
-    * ~~May add a [switch]$PreserveLRM switch to disable LRM sanitization~~
-* ~~Fix **gfo** "trailing-slash" bug~~ (06/06/2022)
-    * ~~This doesn't effect the module functionality, but it's an easy bug to squash~~
+This is a list of things that I am aware of, and plan to fix:
+
+* "Clean Up" code after failure/cancellation will not work with multi-volume archives
+* Create-Archive's "$PreserveTimestamps" parameter has a mismatch (default is "on" with zip/gzip, mix of multiple on/off parameters with 7z)
+    * For 7z, will roll all the attributes (create, modification, last access options) into this single parameter
+* Create-Archive's "$Passes" parameter doesn't check for appropriate values (1-10 for zip/gzip, 1-15 for bzip)
+* Create-Archive's "$EncryptHeaderOn" parameter needs to be compared to the $Password parameter to make sure encryption is specified
 
 ## To-Dos:
-This is a list of enhancements and improvements on my agenda:
+This is a list of enhancements and improvements:
 
-* ~~Reduce **gea** "Helper File" parameters to a single parameter~~ (06/06/2022)
-* Optimize/rewrite the supporting code behind the *-OmitEmptyFields* parameter
-    * Figure out the fastest way to isolate unique, unused properties
-* Write some "example scripts" to demo the module
-* ~~Create a .psd1 for version tracking and Powershell/.NET CLR version enforcement~~ (06/06/2022)
-* Apply Powershell 7.1 **foreach -parallel** functionality
-    * This code is badly bottlenecked by single-threaded performance
-    * Parallelizing it would add a tremendous performance enhancement
-
+* The "Create-Archive" function should be able to figure out the archive format from the file name's extension
+    * This creates a problem with the parameter-sets structure that I need to work through
+* Invoke "Initialize-7Zip" as part of the module import
+* Create a parameter to specify a path to save the log file for "Extract-Archive" and "Create-Archive" functions
+* Check 7-Zip version in the Initialize-7Zip function (minimum 19.00 recommended, version 22.xx is being tested)
 
 ## Authors
 
