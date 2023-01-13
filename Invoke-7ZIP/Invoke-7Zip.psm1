@@ -1297,7 +1297,8 @@ Function Create-Archive {
         
             $False {
 
-                Remove-Item $ArchiveFile -ErrorAction SilentlyContinue
+                If ($PSBoundParameters.ContainsKey('VolSize')){Remove-Item $ArchiveFile\.* -ErrorAction SilentlyContinue}
+                Else {Remove-Item $ArchiveFile -ErrorAction SilentlyContinue}
 
                 If ($Global:Interrupted -eq $True -and $Loud){throw "Operation was interrupted before completion"}
                 Elseif ($Global:Interrupted -eq $False -and $Loud){throw "Job errored; job found in state $($JobStatus.State) after completion"}

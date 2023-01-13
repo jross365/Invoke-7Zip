@@ -494,7 +494,8 @@ If you encounter a bug, please report it. Let me know exactly how you encountere
 ## Known Issues
 This is a list of things that I am aware of, and plan to fix:
 
-* "Clean Up" code after failure/cancellation will not work with multi-volume archives
+* ~~"Clean Up" code after failure/cancellation will not work with multi-volume archives~~
+* "OverWrite Clean Up" code after success will not work with multi-volume archives
 * Create-Archive's "$PreserveTimestamps" parameter has a mismatch (default is "on" with zip/gzip, mix of multiple on/off parameters with 7z)
     * For 7z, will roll all the attributes (create, modification, last access options) into this single parameter
 * Create-Archive's "$Passes" parameter doesn't check for appropriate values (1-10 for zip/gzip, 1-15 for bzip)
