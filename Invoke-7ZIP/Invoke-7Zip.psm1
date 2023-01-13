@@ -1263,25 +1263,21 @@ Function Create-Archive {
            }
            Until ($Done -eq $True -or $Global:Interrupted -eq $True)
 
-           If ($Loud){
-
-               Write-Progress -Activity "Compressing $ArchiveFile" -Status "Ready" -Completed
-
-               If ($Global:Interrupted -eq $True){$Operation = "$Operation Interrupted"; $Successful = $False}
-
-           }
+           If ($Loud){Write-Progress -Activity "Compressing $ArchiveFile" -Status "Ready" -Completed}
 
            $JobStatus = Get-Job ($Job.Id)
 
            Switch (($JobStatus).State){
 
-           { $_ -eq "Running"}{Stop-Job -Id ($Job.Id); Remove-Job -Id ($Job.Id); $Successful = $False}
+                { $_ -eq "Running"}{Stop-Job -Id ($Job.Id); Remove-Job -Id ($Job.Id); $Successful = $False}
 
-           {$_ -eq "Completed"}{$JobContents = ($Job | Receive-Job); Remove-Job ($Job.Id); $Successful = $True}
+                {$_ -eq "Completed"}{$JobContents = ($Job | Receive-Job); Remove-Job ($Job.Id); $Successful = $True}
 
-           {$_ -eq "Failed"}{&$LogfileCleanup; $JobError = $JobStatus.Error; Remove-Job ($Job.Id); $Successful = $False}
+                {$_ -eq "Failed"}{&$LogfileCleanup; $JobError = $JobStatus.Error; Remove-Job ($Job.Id); $Successful = $False}
 
            }
+
+           If ($Global:Interrupted -eq $True){$Successful = $False}
 
            #endregion Heavy lifting
            
@@ -1297,7 +1293,7 @@ Function Create-Archive {
         
             $False {
 
-                If ($PSBoundParameters.ContainsKey('VolSize')){Remove-Item $ArchiveFile\.* -ErrorAction SilentlyContinue}
+                If ($PSBoundParameters.ContainsKey('VolSize')){Remove-Item $ArchiveFile* -ErrorAction SilentlyContinue}
                 Else {Remove-Item $ArchiveFile -ErrorAction SilentlyContinue}
 
                 If ($Global:Interrupted -eq $True -and $Loud){throw "Operation was interrupted before completion"}
@@ -1309,10 +1305,27 @@ Function Create-Archive {
             $True {
 
                 If ($OverWriteCleanup){
-
-                    Remove-Item $FinalFileName -ErrorAction SilentlyContinue #Delete the original file
                     
-                    Rename-Item -Path $ArchiveFile -NewName $FinalFileName -Confirm:$False #Rename the .tmp file to the original filename
+                    If ($PSBoundParameters.ContainsKey('VolSize')){
+                        
+                        Remove-Item $FinalFileName* -ErrorAction SilentlyContinue
+                        
+                        (Get-ChildItem $ArchiveFile*).ForEach({
+                        
+                            $SubFile = $_
+                            Rename-Item -Path ($SubFile.FullName) -NewName ($ArchiveFile.($SubFile.Extension))
+                        
+                        })
+                    
+                    }
+                    
+                    Else {
+
+                        Remove-Item $FinalFileName -ErrorAction SilentlyContinue #Delete the original file
+                    
+                        Rename-Item -Path $ArchiveFile -NewName $FinalFileName -Confirm:$False #Rename the .tmp file to the original filename
+                    
+                    }
 
                 }
 
