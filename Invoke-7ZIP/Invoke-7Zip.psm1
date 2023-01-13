@@ -971,7 +971,7 @@ Function Create-Archive {
         try {$Source = Get-AbsolutePath $Source}
         catch {throw "$Source is not a valid path"}
 
-        If (($Xz.IsPresent -or $BZip2.IsPresent) -and (Get-Item $Source).PsIsContainer -eq $True){throw "$Source is a directory; XZ and BZIP2 can only compress single files. Try TARing it first"}
+        If (($Xz.IsPresent -or $BZip2.IsPresent -or $GZip.IsPresent) -and (Get-Item $Source).PsIsContainer -eq $True){throw "$Source is a directory; GZIP, XZ and BZIP2 can only compress single files. Try TARing it first"}
 
         If ((Get-Alias 7z -ErrorAction SilentlyContinue).Count -eq 0){
         
@@ -1126,6 +1126,8 @@ Function Create-Archive {
 
         }
     #endregion Build ESCAPE key Interception
+    
+    If ($Loud){Write-Verbose "7Zip command: 7z $7zParameters -bsp1" -Verbose}
 
     } #End begin
 
