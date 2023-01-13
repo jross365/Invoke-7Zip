@@ -1295,7 +1295,7 @@ Function Create-Archive {
         
             $False {
 
-                If ($PSBoundParameters.ContainsKey('VolSize')){Remove-Item $ArchiveFile* -ErrorAction SilentlyContinue}
+                If ($PSBoundParameters.ContainsKey('VolumeSize')){Remove-Item $ArchiveFile* -ErrorAction SilentlyContinue}
                 Else {Remove-Item $ArchiveFile -ErrorAction SilentlyContinue}
 
                 If ($Global:Interrupted -eq $True -and $Loud){throw "Operation was interrupted before completion"}
@@ -1308,7 +1308,7 @@ Function Create-Archive {
 
                 If ($OverWriteCleanup){
                     
-                    If ($PSBoundParameters.ContainsKey('VolSize')){
+                    If ($PSBoundParameters.ContainsKey('VolumeSize')){
                         
                         Remove-Item $FinalFileName* -ErrorAction SilentlyContinue
                         
