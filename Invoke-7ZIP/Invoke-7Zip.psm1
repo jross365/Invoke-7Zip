@@ -919,13 +919,13 @@ Function Create-Archive {
         [Parameter(Position=3)][ValidatePattern('^[0-9]+[KkMmGg]$')][Alias('VolSize')][string]$VolumeSize,
         [Parameter(Position=4)][Alias('Pass')][string]$Password,
         [Parameter(Position=5)][Alias('Multithread')][switch]$UseMultithreading,
-        [Parameter(Position=6)][switch]$Overwrite, #Need to write in accommodation of multi-volume archives
+        [Parameter(Position=6)][switch]$Overwrite,
         [Parameter(Position=7)][Alias('KeepLog')][switch]$KeepLogfile,
         [Parameter(Position=8)][switch]$Quiet,
         [Parameter(ParameterSetName='Zip',Position=9)][ValidateSet("Copy","Deflate","Deflate64","BZip2","LZMA")][string]$ZipMethod,
         [Parameter(ParameterSetName='Zip',Position=10)][Parameter(ParameterSetName='GZip',Position=9)][Parameter(ParameterSetName='BZip2',Position=9)][Parameter(ParameterSetName='7z',Position=9)][ValidatePattern('[013579]')][int]$CompressionLevel,
         [Parameter(ParameterSetName='Zip',Position=11)][Parameter(ParameterSetName='GZip',Position=10)][ValidateSet("ZipCrypto","AES128","AES192","AES256")][string]$EncryptionMethod,
-        [Parameter(ParameterSetName='Zip',Position=12)][Parameter(ParameterSetName='GZip',Position=11)][Parameter(ParameterSetName='7z',Position=10)][switch]$PreserveTimestamps, #Need to accommodate different defaults (on vs off)
+        [Parameter(ParameterSetName='Zip',Position=12)][Parameter(ParameterSetName='GZip',Position=11)][Parameter(ParameterSetName='7z',Position=10)][bool]$PreserveTimestamps,
         [Parameter(ParameterSetName='Zip',Position=13)][Parameter(ParameterSetName='GZip',Position=12)][switch]$UseLocalCodePage,
         [Parameter(ParameterSetName='Zip',Position=14)][Parameter(ParameterSetName='GZip',Position=13)][switch]$UTF8ForNonASCII,
         [Parameter(ParameterSetName='Zip',Position=15)][Parameter(ParameterSetName='GZip',Position=14)][Parameter(ParameterSetName='BZip2',Position=10)][int]$Passes, #Need to validate 1-10 (ZIP/GZIP & Deflate) and 1-15 (BZIP)
@@ -939,7 +939,7 @@ Function Create-Archive {
   
         #region Case-correct and check paths and aliases
         
-        If (Test-Path "$ArchiveFile"){
+        If (Test-Path "$ArchiveFile*"){
 
             Switch ($OverWrite.IsPresent){
 
@@ -947,7 +947,7 @@ Function Create-Archive {
                     
                     $FinalFileName = $ArchiveFile
                     
-                    $ArchiveFile = $ArchiveFile + '.tmp'
+                    $ArchiveFile = 'tmp~' + $ArchiveFile
                     
                     If (Test-Path $ArchiveFile){
                      
@@ -1001,7 +1001,7 @@ Function Create-Archive {
         #region Define Generic/Broad Parameters
 
         $7zParameters = ""
-        $7zParameters += " a " + '"' + "$ArchiveFile" + '" "' + "$Source" + '" ' + "-t$ArchiveType "
+        $7zParameters += "a " + '"' + "$ArchiveFile" + '" "' + "$Source" + '" ' + "-t$ArchiveType "
 
         If ($PSBoundParameters.ContainsKey('Password')){$7zParameters += "-p$Password "}
 
@@ -1028,7 +1028,14 @@ Function Create-Archive {
 
             If ($PSBoundParameters.ContainsKey('ZipMethod')){$7zParameters += "-mm=$ZipMethod "}
             If ($PSBoundParameters.ContainsKey('EncryptionMethod')){$7zParameters += "-mem=$EncryptionMethod "}
-            If ($PreserveTimestamps.IsPresent){$7zParameters += "-mtc=on "}
+            If ($PSBoundParameters.ContainsKey('PreserveTimeStamps')){
+
+                switch ($PreserveTimestamps){
+                    $True {$mtc = "on"}
+                    $False {$mtc = "off"}
+                }
+                $7zParameters += "-mtc=$mtc "
+            }
             If ($UseLocalCodePage.IsPresent){$7zParameters += "-mcl=on "}
             If ($UTF8ForNonASCII.IsPresent){$7zParameters += "-mcu=on "}
 
@@ -1048,7 +1055,15 @@ Function Create-Archive {
         
         {$_ -eq "7z"}{
 
-            If ($PreserveTimestamps.IsPresent){$7zParameters += "-mtc=on "}
+            If ($PSBoundParameters.ContainsKey('PreserveTimeStamps')){
+
+                switch ($PreserveTimestamps){
+                    $True {$mtc = "on"}
+                    $False {$mtc = "off"}
+                }
+                $7zParameters += "-mtm=$mtc -mtc=$mtc -mta=$mtc "
+
+            }
             If ($SolidModeOff.IsPresent){$7zParameters += "-ms=off "}
             If ($ExeCompressionOff.IsPresent){$7zParameters += "-mf=off "}
             If ($HeaderCompressionOff.IsPresent){$7zParameters += "-mhc=off "}
@@ -1315,7 +1330,9 @@ Function Create-Archive {
                         (Get-ChildItem $ArchiveFile*).ForEach({
                         
                             $SubFile = $_
-                            Rename-Item -Path ($SubFile.FullName) -NewName ($ArchiveFile.($SubFile.Extension))
+                            $NewName = $FinalFileName + "$($SubFile.Extension)"
+
+                            Rename-Item -Path ($SubFile.FullName) -NewName "$NewName"
                         
                         })
                     

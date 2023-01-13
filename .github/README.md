@@ -205,7 +205,9 @@ Valid values are:
 If unspecified, default is ZipCrypto.
 
 #### **-PreserveTimestamps**
-If specified, file creation, modification and access information is preserved in compressed files.
+If specified, sets whether file creation, modification and access information are preserved in compressed files.
+
+Valid values are boolean ($True or $False).
 
 #### **-UseLocalCodePage**
 Preserve the locale character set for compressed file names.
@@ -241,7 +243,9 @@ Valid values are:
 If unspecified, default is ZipCrypto.
 
 #### **-PreserveTimestamps**
-If specified, file creation, modification and access information is preserved in compressed files.
+If specified, sets whether file creation, modification and access information are preserved in compressed files.
+
+Valid values are boolean ($True or $False).
 
 #### **-UseLocalCodePage**
 Preserve the locale character set for compressed file names.
@@ -276,7 +280,9 @@ These parameters apply to the *-SevenZip* parameter set.
 Specifies the level of compression, from 0 (none) to 9 (maximum).
 
 #### **-PreserveTimestamps**
-If specified, file creation, modification and access information is preserved in compressed files.
+If specified, sets whether file creation, modification and access information are preserved in compressed files.
+
+Valid values are boolean ($True or $False).
 
 #### **-SolidModeOff**
 If specified, files are compressed individually instead of as a single, contiguous "block" of binary.
@@ -495,7 +501,7 @@ If you encounter a bug, please report it. Let me know exactly how you encountere
 This is a list of things that I am aware of, and plan to fix:
 
 * ~~"Clean Up" code after failure/cancellation will not work with multi-volume archives~~
-* "OverWrite Clean Up" code after success will not work with multi-volume archives
+* ~~"OverWrite Clean Up" code after success will not work with multi-volume archives~~
 * Create-Archive's "$PreserveTimestamps" parameter has a mismatch (default is "on" with zip/gzip, mix of multiple on/off parameters with 7z)
     * For 7z, will roll all the attributes (create, modification, last access options) into this single parameter
 * Create-Archive's "$Passes" parameter doesn't check for appropriate values (1-10 for zip/gzip, 1-15 for bzip)
