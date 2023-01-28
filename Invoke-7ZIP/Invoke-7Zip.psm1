@@ -17,12 +17,7 @@ GitHub: https://github.com/jross365/Invoke-7Zip
 #>
 Function Initialize-7zip ($szPath){
 
-    If ($szPath.Length -gt 0 -and $null -ne $SzPath){
-    
-        try {$PathTest = Test-Path $szPath -ErrorAction Stop; $7zPathExists = $True}
-        catch {$7zPathExists = $False}
-
-    }
+    If ($szPath.Length -gt 0 -and $null -ne $SzPath){$7zPathExists = Test-Path $szPath}
 
     If (!($7zPathExists) -or ($szPath.Length -eq 0 -or $null -eq $S7zPath)){
 
@@ -30,17 +25,13 @@ Function Initialize-7zip ($szPath){
     
             $False {
         
-                    try {
-                        
-                        $SzPath = (Get-ItemProperty "HKCU:\SOFTWARE\7-Zip" -ErrorAction Stop).Path + '7z.exe'
+                        try {$SzPath = (Get-ItemProperty "HKCU:\SOFTWARE\7-Zip" -ErrorAction Stop).Path + '7z.exe'}
+                        catch {throw "HKCU:\..7-ZIP not found, or access denied"}
         
                         try {$PathTest = Test-Path $szPath -ErrorAction Stop}
                         catch {throw "Registry entry for 7-Zip exists but path $szPath is not found"}
         
-                    } #Close try
-                    catch {throw "7z not installed on this computer and is not in a local directory"}
-        
-                  } #Close False
+                    }
         
             $True {$szPath = (Get-Location).Path + "7-Zip\7z.exe"}
         
