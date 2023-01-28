@@ -901,7 +901,7 @@ Function Create-Archive {
     param( 
         [Parameter(Mandatory=$True,Position=0)][ValidateScript({Test-Path $_})][Alias('Src')][string]$Source,
         [Parameter(Mandatory=$True,Position=1)][Alias('File')][string]$ArchiveFile,
-        [Parameter(ParameterSetName='Zip',Position=2)][switch]$Zip, #Need to enumerate the desired file type from the -ArchiveFile extension
+        [Parameter(ParameterSetName='Zip',Position=2)][switch]$Zip,
         [Parameter(ParameterSetName='GZip',Position=2)][switch]$GZip,
         [Parameter(ParameterSetName='BZip2',Position=2)][switch]$BZip2,
         [Parameter(ParameterSetName='7z',Position=2)][switch]$SevenZip,
@@ -983,12 +983,13 @@ Function Create-Archive {
         ElseIf ($SevenZip.IsPresent){$ArchiveType = "7z"}
         ElseIf ($Xz.IsPresent){$ArchiveType = "xz"}
         ElseIf ($Tar.IsPresent){$ArchiveType = "tar"}
-        ElseIf ([System.IO.Path]::GetExtension($ArchiveFile) -imatch '^zip$|^bzip2$|^gzip$|^7z$|^xz$|^tar$'){$ArchiveType = ([System.IO.Path]::GetExtension($ArchiveFile)).ToLower()}
         Else {throw "Indeterminable or invalid archive type; please specify -<ArchiveType> switch parameter"}
+
+        If (($ArchiveType -eq 'xz' -or $ArchiveType -eq 'bzip2' -or $ArchiveType -eq 'gzip') -and (Get-Item $Source).PsIsContainer -eq $True){throw "$Source is a directory; GZIP, XZ and BZIP2 can only compress single files. Try TARing it first"}
 
         #endregion Capture Archive Type
 
-        If (($ArchiveType -eq 'xz' -or $ArchiveType -eq 'bzip2' -or $ArchiveType -eq 'gzip') -and (Get-Item $Source).PsIsContainer -eq $True){throw "$Source is a directory; GZIP, XZ and BZIP2 can only compress single files. Try TARing it first"}
+
 
         #region Define Generic/Broad Parameters
 
