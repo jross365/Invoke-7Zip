@@ -919,16 +919,23 @@ Function Create-Archive {
         [Parameter(ParameterSetName='Zip',Position=12)][Parameter(ParameterSetName='GZip',Position=11)][Parameter(ParameterSetName='7z',Position=10)][bool]$PreserveTimestamps,
         [Parameter(ParameterSetName='Zip',Position=13)][Parameter(ParameterSetName='GZip',Position=12)][switch]$UseLocalCodePage,
         [Parameter(ParameterSetName='Zip',Position=14)][Parameter(ParameterSetName='GZip',Position=13)][switch]$UTF8ForNonASCII,
-        [Parameter(ParameterSetName='Zip',Position=15)][Parameter(ParameterSetName='GZip',Position=14)][Parameter(ParameterSetName='BZip2',Position=10)][int]$Passes, #Need to validate 1-10 (ZIP/GZIP & Deflate) and 1-15 (BZIP)
+        [Parameter(ParameterSetName='Zip',Position=15)][Parameter(ParameterSetName='GZip',Position=14)][Parameter(ParameterSetName='BZip2',Position=10)][int]$Passes,
         [Parameter(ParameterSetName='7z',Position=11)][switch]$SolidModeOff,
         [Parameter(ParameterSetName='7z',Position=12)][switch]$ExeCompressionOff,
         [Parameter(ParameterSetName='7z',Position=13)][switch]$HeaderCompressionOff,
-        [Parameter(ParameterSetName='7z',Position=14)][switch]$EncryptHeaderOn #Need to validate the use of "-Password" if this switch is specified
+        [Parameter(ParameterSetName='7z',Position=14)][switch]$EncryptHeaderOn
         )
 
     begin {
   
         #region Case-correct and check paths and aliases
+        If ((Get-Alias 7z -ErrorAction SilentlyContinue).Count -eq 0){
+        
+            Try {Initialize-7zip -ErrorAction Stop}
+            Catch {throw "Unable to initialize 7zip alias"}
+        }
+
+        $7zPath = $Global:szPath #Exported by Initialize-7Zip
         
         If (Test-Path "$ArchiveFile*"){
 
@@ -962,15 +969,6 @@ Function Create-Archive {
         try {$Source = Get-AbsolutePath $Source}
         catch {throw "$Source is not a valid path"}
 
-        If (($Xz.IsPresent -or $BZip2.IsPresent -or $GZip.IsPresent) -and (Get-Item $Source).PsIsContainer -eq $True){throw "$Source is a directory; GZIP, XZ and BZIP2 can only compress single files. Try TARing it first"}
-
-        If ((Get-Alias 7z -ErrorAction SilentlyContinue).Count -eq 0){
-        
-            Try {Initialize-7zip -ErrorAction Stop}
-            Catch {throw "Unable to initialize 7zip alias"}
-        }
-
-        $7zPath = $Global:szPath #Exported by Initialize-7Zip
         #endregion Case-correct the File/Directory
         
         $Loud = !($Quiet.IsPresent)
@@ -985,9 +983,12 @@ Function Create-Archive {
         ElseIf ($SevenZip.IsPresent){$ArchiveType = "7z"}
         ElseIf ($Xz.IsPresent){$ArchiveType = "xz"}
         ElseIf ($Tar.IsPresent){$ArchiveType = "tar"}
-        Else {throw "Indeterminable archive type; please specify -<ArchiveType> switch parameter"}
+        ElseIf ([System.IO.Path]::GetExtension($ArchiveFile) -imatch '^zip$|^bzip2$|^gzip$|^7z$|^xz$|^tar$'){$ArchiveType = ([System.IO.Path]::GetExtension($ArchiveFile)).ToLower()}
+        Else {throw "Indeterminable or invalid archive type; please specify -<ArchiveType> switch parameter"}
 
         #endregion Capture Archive Type
+
+        If (($ArchiveType -eq 'xz' -or $ArchiveType -eq 'bzip2' -or $ArchiveType -eq 'gzip') -and (Get-Item $Source).PsIsContainer -eq $True){throw "$Source is a directory; GZIP, XZ and BZIP2 can only compress single files. Try TARing it first"}
 
         #region Define Generic/Broad Parameters
 
@@ -1058,7 +1059,7 @@ Function Create-Archive {
             If ($SolidModeOff.IsPresent){$7zParameters += "-ms=off "}
             If ($ExeCompressionOff.IsPresent){$7zParameters += "-mf=off "}
             If ($HeaderCompressionOff.IsPresent){$7zParameters += "-mhc=off "}
-            If ($EncryptHeaderOn.IsPresent){$7zParameters += "-mhe=on "}
+            If ($EncryptHeaderOn.IsPresent -and $PSBoundParameters.ContainsKey('Password')){$7zParameters += "-mhe=on "}
         }
         {$_ -eq "xz"}{} #Nothing to do
         {$_ -eq "tar"}{} #Nothing to do
