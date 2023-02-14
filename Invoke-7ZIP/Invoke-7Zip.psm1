@@ -5,9 +5,6 @@ Resolves the location of 7Zip.
 .DESCRIPTION
 Attempts to identify and store the path of 7z.exe, and stores it as a global variable for use within the Invoke-7Zip module
 
-.PARAMETER szPath
-If specified, will use the provided path as the location of the 7Zip executable.
-
 .EXAMPLE
 Initialize-7zip
 
@@ -15,30 +12,41 @@ Initialize-7zip
 GitHub: https://github.com/jross365/Invoke-7Zip
 
 #>
-Function Initialize-7zip ($szPath){
+Function Initialize-7zip {
 
-    If ($szPath.Length -gt 0 -and $null -ne $SzPath){$7zPathExists = Test-Path $szPath}
+        $7zPaths = @(".\","$($env:ProgramFiles)","$(${env:ProgramFiles(x86)})")
 
-    If (!($7zPathExists) -or ($szPath.Length -eq 0 -or $null -eq $S7zPath)){
+        $x = 0
 
-        switch (Test-Path .\7-Zip\7z.exe){
-    
-            $False {
-        
-                        try {$SzPath = (Get-ItemProperty "HKCU:\SOFTWARE\7-Zip" -ErrorAction Stop).Path + '7z.exe'}
-                        catch {throw "HKCU:\..7-ZIP not found, or access denied"}
-        
-                        try {$PathTest = Test-Path $szPath -ErrorAction Stop}
-                        catch {throw "Registry entry for 7-Zip exists but path $szPath is not found"}
-        
-                    }
-        
-            $True {$szPath = (Get-Location).Path + "7-Zip\7z.exe"}
-        
-        } #Close Switch
+        $7zFound = $False
 
-    }
-    
+        do {
+
+            $x++
+
+            $PossiblePath = "$($7zPaths[$x])\7-Zip\7z.exe"
+
+            $7zFound = Test-Path $PossiblePath
+
+        }
+        until ($x -eq ($7zPaths.Count) -or ($7zFound -eq $True))
+
+        switch ($7zFound){
+
+        $True {$szPath = $PossiblePath}
+
+        $False {
+
+            try {$RegPath = (Get-ItemProperty "HKCU:\SOFTWARE\7-Zip" -ErrorAction Stop).Path + '7z.exe'}
+            catch {throw "HKCU:\..7-ZIP not found, or access denied"}
+
+            If ((Test-Path $RegPath)){$szPath = $RegPath}
+            Else {throw "Registry path found, but 7z.exe binary not found"}
+
+        }
+
+        } #Close Switch 7zFound
+
     Set-Alias -Scope Global -Name 7z -Value $szPath
     
     $Global:szPath = $szPath
