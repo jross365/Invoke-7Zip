@@ -612,6 +612,7 @@ Function Extract-Archive {
             #endregion Pre-execution clean-up
 
             #region Heavy lifting
+            $Successful = $False #Will be changed to $True after "Everything is Ok"
 
             $Job = Start-Job -Name "7zExtract" -ScriptBlock $ScriptBlock -ArgumentList @("$((Get-Location).Path)",$7zPath,$7zParameters,$LogFile)
                 
@@ -646,7 +647,12 @@ Function Extract-Archive {
 
                 $LogLatest = (Get-Content $LogFile -Tail 6).Where({$_ -match '(\d+)%|(\bEverything is Ok\b)'}) | Select-Object -Last 1
 
-                If (!$Loud -and [bool]($LogLatest -eq "Everything is Ok")){$Done = $True}
+                If (!$Loud -and [bool]($LogLatest -eq "Everything is Ok")){
+                    
+                    $Done = $True
+                    $Successful = $True
+                    
+                    }
 
                 If ($Loud){
 
@@ -659,6 +665,7 @@ Function Extract-Archive {
 
                     ElseIf ([bool]($LogLatest -eq "Everything is Ok")){
                                                 $Done = $True
+                                                $Successful = $True
                                                 $OnFile = $FileCount
                                                 $File = "None (Complete)"
                                                 $Percent = 100
@@ -728,7 +735,9 @@ Function Extract-Archive {
 
             Switch (($JobStatus).State){
 
-            { $_ -eq "Running"}{Stop-Job -Id ($Job.Id); Remove-Job -Id ($Job.Id); $Successful = $False}
+            {$_ -eq "Running"}{Stop-Job -Id ($Job.Id); Remove-Job -Id ($Job.Id); $Successful = $False}
+            
+            {$_ -eq "Stopped"}{Remove-Job -Id ($Job.Id)}
 
             {$_ -eq "Completed"}{$JobContents = ($Job | Receive-Job); Remove-Job ($Job.Id); $Successful = $True}
 
