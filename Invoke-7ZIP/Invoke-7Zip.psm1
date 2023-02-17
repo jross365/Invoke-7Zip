@@ -985,6 +985,8 @@ Function Create-Archive {
         
         try {$Source = Get-AbsolutePath $Source}
         catch {throw "$Source is not a valid path"}
+        
+        $IsDirectory = Get-Item ($Source).PsIsContainer
 
         #endregion Case-correct the File/Directory
         
@@ -1195,16 +1197,16 @@ Function Create-Archive {
             $Counter++
 
            }
-           Until ($FileCountParsed -eq $True -or $Counter -eq 40)
+           Until ($FileCountParsed -eq $True -or $Counter -eq 50)
 
-           if ($FileCountParsed -eq $False -and $Counter -eq 40){
+           if ($FileCountParsed -eq $False -and $Counter -eq 50){
 
             $JobStatus = Get-Job ($Job.Id)
 
             Stop-Job -Id ($JobStatus.Id) | Out-Null
             Remove-Job -Id ($JobStatus.Id) | Out-Null
 
-            throw "10 seconds elapsed without detecting a statement of folder/file counts in the log file. Something's probably wrong, stopping function."
+            throw "5 seconds elapsed without detecting a statement of folder/file counts in the log file. Something's probably wrong, stopping function."
 
             }
 
@@ -1223,7 +1225,9 @@ Function Create-Archive {
 
            #endregion Parse out number of files in archive
 
-           $MoreThanOneFile = [bool]($FileCount -gt 1) -or [bool]($SevenZip.IsPresent) #7z format logs "#% 1 + FileName" in the output log, for some reason
+           #WRONG: "7z format logs "#% 1 + FileName" in the output log, for some reason"
+           #Update: The "#% 1 + FileName" format happens if $Source is a directory
+           $MoreThanOneFile = [bool]($FileCount -gt 1) -or [bool]($IsDirectory) 
 
            $JobStatus = Get-Job ($Job.Id)
 
