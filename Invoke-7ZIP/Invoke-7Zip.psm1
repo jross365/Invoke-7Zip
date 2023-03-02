@@ -986,7 +986,7 @@ Function Create-Archive {
         try {$Source = Get-AbsolutePath $Source}
         catch {throw "$Source is not a valid path"}
         
-        $IsDirectory = Get-Item ($Source).PsIsContainer
+        $IsDirectory = (Get-Item $Source).PsIsContainer
 
         #endregion Case-correct the File/Directory
         
